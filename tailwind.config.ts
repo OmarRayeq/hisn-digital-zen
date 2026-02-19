@@ -57,33 +57,62 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        emerald: {
+          deep: "hsl(var(--emerald-deep))",
+          mid: "hsl(var(--emerald-mid))",
+          surface: "hsl(var(--emerald-surface))",
+          border: "hsl(var(--emerald-border))",
+        },
+        gold: {
+          DEFAULT: "hsl(var(--gold))",
+          bright: "hsl(var(--gold-bright))",
+          dim: "hsl(var(--gold-dim))",
+        },
+        cream: {
+          DEFAULT: "hsl(var(--cream))",
+          dim: "hsl(var(--cream-dim))",
+        },
+      },
+      fontFamily: {
+        arabic: ["'Amiri'", "'Noto Naskh Arabic'", "serif"],
+        quran: ["'Amiri Quran'", "'Amiri'", "serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "1.5rem",
+        "2xl": "2rem",
+        "3xl": "3rem",
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "pulse-gold": {
+          "0%, 100%": { boxShadow: "0 0 20px hsl(40 52% 55% / 0.3)" },
+          "50%": { boxShadow: "0 0 50px hsl(40 52% 55% / 0.6)" },
+        },
+        "fade-in-up": {
+          from: { opacity: "0", transform: "translateY(16px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.92)" },
+          to: { opacity: "1", transform: "scale(1)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-gold": "pulse-gold 2.5s ease-in-out infinite",
+        "fade-in-up": "fade-in-up 0.4s ease-out",
+        "scale-in": "scale-in 0.3s ease-out",
       },
     },
   },
