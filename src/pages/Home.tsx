@@ -1,10 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { adhkarCategories } from "@/data/adhkar";
-import { BookOpen, Star } from "lucide-react";
+import { BookOpen, Star, Heart, Search, Loader2 } from "lucide-react";
+import { useCategoryIndex, useFavorites, HisnCategory } from "@/hooks/useAdhkarData";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { categories, loading, error } = useCategoryIndex();
+  const { favorites, toggleFavorite, isFavorite } = useFavorites();
+  const [search, setSearch] = useState("");
+
+  const favoriteCategories = categories.filter((c) => isFavorite(c.id));
+
+  const filtered = search.trim()
+    ? categories.filter(
+        (c) =>
+          c.title.includes(search) ||
+          c.titleEn.toLowerCase().includes(search.toLowerCase())
+      )
+    : categories;
 
   return (
     <div
@@ -12,24 +25,8 @@ const Home: React.FC = () => {
       style={{ background: "var(--gradient-hero)" }}
       dir="rtl"
     >
-      {/* Decorative blobs */}
-      <div
-        className="fixed top-0 right-0 w-80 h-80 pointer-events-none opacity-5"
-        style={{ background: "radial-gradient(circle at top right, hsl(40 52% 55%), transparent 70%)" }}
-      />
-      <div
-        className="fixed bottom-1/3 left-0 w-64 h-64 pointer-events-none opacity-3"
-        style={{ background: "radial-gradient(circle at left, hsl(150 50% 30%), transparent 70%)" }}
-      />
-
       {/* ── HEADER ── */}
-      <header
-        className="flex-none px-5 pt-12 pb-6"
-        style={{
-          background: "linear-gradient(to bottom, hsl(150 54% 5%), transparent)",
-        }}
-      >
-        {/* Logo / ornament row */}
+      <header className="flex-none px-5 pt-12 pb-6">
         <div className="flex justify-center mb-5">
           <div className="flex items-center gap-3">
             <div className="h-px w-16 bg-gradient-to-r from-transparent to-gold/50" />
@@ -49,87 +46,101 @@ const Home: React.FC = () => {
 
         {/* Stats row */}
         <div className="flex gap-3 mt-5 justify-center">
-          <div
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-emerald-border"
-            style={{ background: "hsl(150 30% 8%)" }}
-          >
+          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-emerald-border bg-emerald-surface">
             <BookOpen className="w-3.5 h-3.5 text-gold" />
             <span className="text-cream-dim text-xs font-arabic">
-              {adhkarCategories.length} أقسام
+              {loading ? "..." : `${categories.length} باب`}
             </span>
           </div>
-          <div
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-emerald-border"
-            style={{ background: "hsl(150 30% 8%)" }}
-          >
-            <Star className="w-3.5 h-3.5 text-gold" />
+          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-emerald-border bg-emerald-surface">
+            <Heart className="w-3.5 h-3.5 text-gold" />
             <span className="text-cream-dim text-xs font-arabic">
-              {adhkarCategories.reduce((sum, c) => sum + c.adhkar.length, 0)} ذكر
+              {favorites.length} مفضلة
             </span>
           </div>
+        </div>
+
+        {/* Search */}
+        <div className="mt-4 max-w-lg mx-auto relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cream-dim" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ابحث عن دعاء أو ذكر..."
+            className="w-full pr-10 pl-4 py-2.5 rounded-2xl border border-emerald-border bg-emerald-surface text-cream text-sm font-arabic placeholder:text-cream-dim/50 focus:outline-none focus:border-gold/40 transition-colors"
+          />
         </div>
       </header>
 
-      {/* ── CATEGORY GRID ── */}
+      {/* ── CONTENT ── */}
       <main className="flex-1 overflow-y-auto px-4 pb-8">
-        <div className="grid grid-cols-1 gap-3 max-w-lg mx-auto">
-          {adhkarCategories.map((category, idx) => (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Loader2 className="w-8 h-8 text-gold animate-spin" />
+            <p className="text-cream-dim text-sm font-arabic">جاري تحميل الأقسام...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <p className="text-destructive text-sm font-arabic">{error}</p>
             <button
-              key={category.id}
-              onClick={() => navigate(`/adhkar/${category.id}`)}
-              className="group relative rounded-3xl border border-emerald-border overflow-hidden text-right transition-all duration-300 active:scale-[0.98] hover:border-gold/30"
-              style={{
-                background: "var(--gradient-card)",
-                boxShadow: "var(--shadow-card)",
-                animationDelay: `${idx * 40}ms`,
-              }}
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 rounded-2xl border border-gold/50 text-gold text-sm font-arabic hover:bg-gold/10 transition-colors"
             >
-              {/* Hover glow */}
-              <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-3xl"
-                style={{
-                  background: "radial-gradient(ellipse at top right, hsl(40 52% 55% / 0.06), transparent 60%)",
-                }}
-              />
-
-              {/* Gold accent left bar */}
-              <div className="absolute left-0 top-4 bottom-4 w-0.5 rounded-full bg-gold/0 group-hover:bg-gold/40 transition-all duration-300" />
-
-              <div className="flex items-center gap-4 px-5 py-4">
-                {/* Icon bubble */}
-                <div
-                  className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
-                  style={{
-                    background: "radial-gradient(circle, hsl(150 38% 14%), hsl(150 50% 7%))",
-                    border: "1px solid hsl(150 30% 20%)",
-                    boxShadow: "0 0 16px hsl(40 52% 55% / 0.10)",
-                  }}
-                >
-                  {category.icon}
-                </div>
-
-                {/* Text */}
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-cream text-base font-arabic font-semibold leading-snug">
-                    {category.name}
-                  </h2>
-                  {category.description && (
-                    <p className="text-cream-dim text-xs font-arabic mt-0.5 truncate">
-                      {category.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Count badge + arrow */}
-                <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-gold/10 border border-gold/25 text-gold font-arabic">
-                    {category.adhkar.length} ذكر
-                  </span>
-                </div>
-              </div>
+              إعادة المحاولة
             </button>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="max-w-lg mx-auto space-y-6">
+            {/* ── FAVORITES SECTION ── */}
+            {favoriteCategories.length > 0 && !search.trim() && (
+              <section>
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <Heart className="w-4 h-4 text-gold fill-gold" />
+                  <h2 className="text-gold text-sm font-arabic font-semibold">المفضلة</h2>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {favoriteCategories.map((cat) => (
+                    <CategoryCard
+                      key={`fav-${cat.id}`}
+                      category={cat}
+                      isFavorite={true}
+                      onToggleFavorite={toggleFavorite}
+                      onNavigate={() => navigate(`/adhkar/${cat.id}`)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── ALL CATEGORIES ── */}
+            <section>
+              <div className="flex items-center gap-2 mb-3 px-1">
+                <BookOpen className="w-4 h-4 text-gold" />
+                <h2 className="text-gold text-sm font-arabic font-semibold">
+                  {search.trim() ? `نتائج البحث (${filtered.length})` : "جميع الأبواب"}
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {filtered.map((cat, idx) => (
+                  <CategoryCard
+                    key={cat.id}
+                    category={cat}
+                    isFavorite={isFavorite(cat.id)}
+                    onToggleFavorite={toggleFavorite}
+                    onNavigate={() => navigate(`/adhkar/${cat.id}`)}
+                    delay={idx * 20}
+                  />
+                ))}
+              </div>
+              {filtered.length === 0 && (
+                <p className="text-center text-cream-dim text-sm font-arabic py-10">
+                  لا توجد نتائج
+                </p>
+              )}
+            </section>
+          </div>
+        )}
       </main>
 
       {/* ── FOOTER ── */}
@@ -138,6 +149,73 @@ const Home: React.FC = () => {
           ﴿ وَاذْكُرُوا اللَّهَ كَثِيرًا لَّعَلَّكُمْ تُفْلِحُونَ ﴾
         </p>
       </footer>
+    </div>
+  );
+};
+
+// ── Category Card Component ──
+interface CategoryCardProps {
+  category: HisnCategory;
+  isFavorite: boolean;
+  onToggleFavorite: (id: number) => void;
+  onNavigate: () => void;
+  delay?: number;
+}
+
+const CategoryCard: React.FC<CategoryCardProps> = ({
+  category,
+  isFavorite,
+  onToggleFavorite,
+  onNavigate,
+  delay = 0,
+}) => {
+  return (
+    <div
+      className="group relative rounded-2xl border border-emerald-border overflow-hidden transition-all duration-300 hover:border-gold/30"
+      style={{
+        background: "var(--gradient-card)",
+        animationDelay: `${delay}ms`,
+      }}
+    >
+      <div className="flex items-center gap-3 px-4 py-3">
+        {/* Favorite toggle */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(category.id);
+          }}
+          className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
+          title={isFavorite ? "إزالة من المفضلة" : "إضافة للمفضلة"}
+        >
+          <Heart
+            className={`w-4 h-4 transition-colors ${
+              isFavorite
+                ? "text-gold fill-gold"
+                : "text-cream-dim/40 hover:text-gold/60"
+            }`}
+          />
+        </button>
+
+        {/* Text - clickable */}
+        <button
+          onClick={onNavigate}
+          className="flex-1 min-w-0 text-right active:scale-[0.98] transition-transform"
+        >
+          <h3 className="text-cream text-sm font-arabic font-semibold leading-snug truncate">
+            {category.title}
+          </h3>
+          {category.titleEn && (
+            <p className="text-cream-dim/60 text-xs mt-0.5 truncate text-left" dir="ltr">
+              {category.titleEn}
+            </p>
+          )}
+        </button>
+
+        {/* ID badge */}
+        <span className="flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-gold/10 border border-gold/20 text-gold/70 font-arabic">
+          {category.id}
+        </span>
+      </div>
     </div>
   );
 };
