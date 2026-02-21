@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { RotateCcw, Settings } from "lucide-react";
 
 interface CounterButtonProps {
@@ -21,40 +21,71 @@ const CounterButton: React.FC<CounterButtonProps> = ({
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
   const [isPressed, setIsPressed] = useState(false);
 
+  // مانع الارتداد — لمنع النقر المزدوج العشوائي على الهواتف
+  const lastTapTime = useRef(0);
+  const DEBOUNCE_MS = 200;
+
   const progress = targetCount > 0 ? ((targetCount - remaining) / targetCount) * 100 : 0;
-  const circumference = 2 * Math.PI * 56; // radius = 56
+  const circumference = 2 * Math.PI * 56;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
-  const handleTap = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
+  // إضافة تأثير الموجة عند النقر
+  const addRipple = useCallback((x: number, y: number) => {
+    const id = Date.now();
+    setRipples((prev) => [...prev, { id, x, y }]);
+    setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 600);
+  }, []);
+
+  // معالجة أحداث اللمس فقط — لمنع تكرار onClick + onTouchStart
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLButtonElement>) => {
+      // منع السلوك الافتراضي (يمنع النقر المزدوج والتكبير)
+      e.preventDefault();
       if (completed) return;
 
-      // Ripple effect
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      let x: number, y: number;
-      if ("touches" in e) {
-        x = e.touches[0].clientX - rect.left;
-        y = e.touches[0].clientY - rect.top;
-      } else {
-        x = (e as React.MouseEvent).clientX - rect.left;
-        y = (e as React.MouseEvent).clientY - rect.top;
-      }
+      // فحص مانع الارتداد
+      const now = Date.now();
+      if (now - lastTapTime.current < DEBOUNCE_MS) return;
+      lastTapTime.current = now;
 
-      const id = Date.now();
-      setRipples((prev) => [...prev, { id, x, y }]);
-      setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 600);
+      // حساب موقع الموجة
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.touches[0].clientX - rect.left;
+      const y = e.touches[0].clientY - rect.top;
+      addRipple(x, y);
 
       setIsPressed(true);
       setTimeout(() => setIsPressed(false), 150);
 
       onTap();
     },
-    [completed, onTap]
+    [completed, onTap, addRipple]
+  );
+
+  // معالجة النقر بالماوس (للأجهزة غير اللمسية)
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (completed) return;
+
+      // فحص مانع الارتداد
+      const now = Date.now();
+      if (now - lastTapTime.current < DEBOUNCE_MS) return;
+      lastTapTime.current = now;
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      addRipple(e.clientX - rect.left, e.clientY - rect.top);
+
+      setIsPressed(true);
+      setTimeout(() => setIsPressed(false), 150);
+
+      onTap();
+    },
+    [completed, onTap, addRipple]
   );
 
   return (
     <div className="flex items-center justify-center gap-8 w-full">
-      {/* Reset Button */}
+      {/* زر إعادة التعيين */}
       <button
         onClick={onReset}
         className="flex flex-col items-center gap-1.5 group"
@@ -66,53 +97,41 @@ const CounterButton: React.FC<CounterButtonProps> = ({
         <span className="text-xs text-cream-dim group-hover:text-cream transition-colors">إعادة</span>
       </button>
 
-      {/* Main Counter Circle */}
+      {/* دائرة العداد الرئيسية */}
       <div className="relative flex items-center justify-center">
-        {/* SVG Progress Ring */}
+        {/* حلقة التقدم */}
         <svg
           className="absolute inset-0 w-full h-full -rotate-90"
           width="160"
           height="160"
           viewBox="0 0 160 160"
         >
-          {/* Track */}
+          <circle cx="80" cy="80" r="56" fill="none" stroke="hsl(150 25% 18%)" strokeWidth="4" />
           <circle
-            cx="80"
-            cy="80"
-            r="56"
+            cx="80" cy="80" r="56"
             fill="none"
-            stroke="hsl(150 25% 18%)"
-            strokeWidth="4"
-          />
-          {/* Progress */}
-          <circle
-            cx="80"
-            cy="80"
-            r="56"
-            fill="none"
-            stroke={completed ? "hsl(40 52% 55%)" : "hsl(40 52% 55%)"}
+            stroke="hsl(40 52% 55%)"
             strokeWidth="4"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             className="transition-all duration-500 ease-out"
             style={{
-              filter: completed ? "drop-shadow(0 0 8px hsl(40 52% 55% / 0.8))" : "drop-shadow(0 0 4px hsl(40 52% 55% / 0.4))",
+              filter: completed
+                ? "drop-shadow(0 0 8px hsl(40 52% 55% / 0.8))"
+                : "drop-shadow(0 0 4px hsl(40 52% 55% / 0.4))",
             }}
           />
         </svg>
 
-        {/* Button */}
+        {/* الزر — يستخدم onTouchStart فقط على اللمس و onClick على الماوس */}
         <button
-          onClick={handleTap}
-          onTouchStart={handleTap}
+          onClick={handleClick}
+          onTouchStart={handleTouchStart}
           disabled={completed}
-          className={`relative w-36 h-36 rounded-full overflow-hidden transition-all duration-150 select-none
+          className={`relative w-36 h-36 rounded-full overflow-hidden transition-all duration-150 select-none touch-manipulation
             ${isPressed ? "scale-95" : "scale-100"}
-            ${completed
-              ? "cursor-default"
-              : "cursor-pointer active:scale-95"
-            }
+            ${completed ? "cursor-default" : "cursor-pointer active:scale-95"}
           `}
           style={{
             background: completed
@@ -123,7 +142,7 @@ const CounterButton: React.FC<CounterButtonProps> = ({
               : "0 0 30px hsl(40 52% 55% / 0.25), inset 0 1px 0 hsl(150 40% 30% / 0.2), 0 8px 24px hsl(0 0% 0% / 0.5)",
           }}
         >
-          {/* Ripples */}
+          {/* تأثيرات الموجة */}
           {ripples.map((r) => (
             <span
               key={r.id}
@@ -139,7 +158,7 @@ const CounterButton: React.FC<CounterButtonProps> = ({
             />
           ))}
 
-          {/* Content */}
+          {/* المحتوى */}
           <div className="relative z-10 flex flex-col items-center justify-center h-full gap-0.5">
             {completed ? (
               <>
@@ -148,10 +167,7 @@ const CounterButton: React.FC<CounterButtonProps> = ({
               </>
             ) : (
               <>
-                <span
-                  className="text-gold text-xs font-arabic leading-tight"
-                  dir="rtl"
-                >
+                <span className="text-gold text-xs font-arabic leading-tight" dir="rtl">
                   الهدف: {targetCount}
                 </span>
                 <span className="text-cream text-4xl font-bold leading-none font-arabic">
@@ -162,7 +178,7 @@ const CounterButton: React.FC<CounterButtonProps> = ({
             )}
           </div>
 
-          {/* Shine overlay */}
+          {/* طبقة اللمعان */}
           <div
             className="absolute inset-0 rounded-full pointer-events-none"
             style={{
@@ -172,7 +188,7 @@ const CounterButton: React.FC<CounterButtonProps> = ({
         </button>
       </div>
 
-      {/* Settings Button */}
+      {/* زر الإعدادات */}
       <button
         onClick={onSettings}
         className="flex flex-col items-center gap-1.5 group"

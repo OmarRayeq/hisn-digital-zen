@@ -18,9 +18,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/adhkar/:categoryId" element={<AdhkarReader />} />
-          {/* Legacy redirect */}
+          {/* إعادة توجيه المسارات القديمة */}
           <Route path="/index" element={<Navigate to="/" replace />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
