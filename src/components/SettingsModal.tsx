@@ -1,11 +1,12 @@
 import React from "react";
 import { X } from "lucide-react";
+import type { FontSize } from "@/hooks/useAdhkar";
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  fontSize: "sm" | "md" | "lg" | "xl";
-  onFontSizeChange: (size: "sm" | "md" | "lg" | "xl") => void;
+  fontSize: FontSize;
+  onFontSizeChange: (size: FontSize) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -16,11 +17,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const sizes = [
-    { id: "sm" as const, label: "صغير", preview: "text-base" },
-    { id: "md" as const, label: "متوسط", preview: "text-lg" },
-    { id: "lg" as const, label: "كبير", preview: "text-xl" },
-    { id: "xl" as const, label: "كبير جداً", preview: "text-2xl" },
+  const sizes: { id: FontSize; label: string; preview: string }[] = [
+    { id: "sm", label: "صغير", preview: "text-base" },
+    { id: "md", label: "متوسط", preview: "text-lg" },
+    { id: "lg", label: "كبير", preview: "text-xl" },
+    { id: "xl", label: "كبير جداً", preview: "text-2xl" },
   ];
 
   return (
@@ -35,12 +36,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
-        {/* Handle */}
+        {/* مقبض السحب */}
         <div className="flex justify-center mb-5">
           <div className="w-10 h-1 rounded-full bg-emerald-border" />
         </div>
 
-        {/* Header */}
+        {/* العنوان */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-cream text-lg font-arabic font-bold">الإعدادات</h2>
           <button
@@ -51,9 +52,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Font size */}
+        {/* حجم الخط */}
         <div className="mb-6">
-          <h3 className="text-cream-dim text-sm font-arabic mb-3">حجم الخط</h3>
+          <h3 className="text-cream-dim text-sm font-arabic mb-3">حجم خط الأذكار</h3>
           <div className="grid grid-cols-4 gap-2">
             {sizes.map((s) => (
               <button
@@ -70,9 +71,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             ))}
           </div>
+          {/* معاينة فورية */}
+          <div className="mt-3 p-3 rounded-2xl border border-emerald-border bg-emerald-surface">
+            <p
+              className="text-cream font-arabic text-center leading-relaxed"
+              style={{ fontSize: "var(--adhkar-font-size, 1.375rem)" }}
+            >
+              بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ
+            </p>
+          </div>
         </div>
 
-        {/* Info */}
+        {/* معلومات */}
         <div
           className="rounded-2xl p-4 border border-emerald-border"
           style={{ background: "hsl(150 30% 7%)" }}

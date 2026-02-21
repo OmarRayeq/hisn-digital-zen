@@ -103,6 +103,8 @@
     line-height: 2.2;
     unicode-bidi: bidi-override;
     direction: rtl;
+    /* حجم الخط يتحكم فيه متغير CSS — يتغير من الإعدادات */
+    font-size: var(--adhkar-font-size, 1.375rem);
   }
 
   .arabic-quran {
