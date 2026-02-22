@@ -53,14 +53,29 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/~oauth/],
         runtimeCaching: [
           {
-            // تخزين بيانات npoint API للعمل بدون إنترنت
-            urlPattern: /^https:\/\/api\.npoint\.io\/.*/i,
+            // تخزين بيانات jsonbin API للعمل بدون إنترنت
+            urlPattern: /^https:\/\/api\.jsonbin\.io\/.*/i,
             handler: "CacheFirst",
             options: {
-              cacheName: "npoint-adhkar-cache",
+              cacheName: "jsonbin-adhkar-cache",
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 * 24 * 7, // 7 أيام
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            // تخزين بيانات تفاصيل الأذكار من حصن المسلم
+            urlPattern: /^https:\/\/www\.hisnmuslim\.com\/api\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "hisnmuslim-api-cache",
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 7,
               },
               cacheableResponse: {
                 statuses: [0, 200],
