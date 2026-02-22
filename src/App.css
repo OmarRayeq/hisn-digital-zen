@@ -10,8 +10,4 @@
   max-width: 640px;
   margin: 0 auto;
   min-height: 100vh;
-  /* منع سحب الصفحة بالكامل على الهواتف */
-  overflow: hidden;
-  height: 100vh;
-  height: 100dvh;
 }

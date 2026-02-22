@@ -1,7 +1,6 @@
 // ============================================================
 // خطاف (Hook) للتعرف على إيماءة السحب الأفقي
-// سحب من اليسار لليمين = التالي (RTL)
-// سحب من اليمين لليسار = السابق (RTL)
+// يميّز بين السحب والنقر لمنع التداخل مع زر العداد
 // ============================================================
 
 import { useRef, useCallback } from "react";
@@ -14,10 +13,10 @@ interface SwipeHandlers {
 interface UseSwipeOptions {
   /** الحد الأدنى لمسافة السحب بالبكسل */
   threshold?: number;
-  /** عند السحب لليمين (الذكر التالي في RTL) */
-  onSwipeRight?: () => void;
-  /** عند السحب لليسار (الذكر السابق في RTL) */
+  /** عند السحب لليسار (الذكر التالي في RTL) */
   onSwipeLeft?: () => void;
+  /** عند السحب لليمين (الذكر السابق في RTL) */
+  onSwipeRight?: () => void;
 }
 
 export function useSwipe({
@@ -41,10 +40,10 @@ export function useSwipe({
     if (Math.abs(deltaX) < threshold || Math.abs(deltaY) > Math.abs(deltaX)) return;
 
     if (deltaX > 0) {
-      // سحب لليمين → في RTL = الذكر التالي
+      // سحب لليمين → في RTL = الذكر السابق
       onSwipeRight?.();
     } else {
-      // سحب لليسار → في RTL = الذكر السابق
+      // سحب لليسار → في RTL = الذكر التالي
       onSwipeLeft?.();
     }
   }, [threshold, onSwipeLeft, onSwipeRight]);

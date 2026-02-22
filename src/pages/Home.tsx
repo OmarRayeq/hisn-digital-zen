@@ -1,20 +1,19 @@
 // ============================================================
-// الصفحة الرئيسية — عرض جميع أقسام الأذكار
+// الصفحة الرئيسية — عرض أقسام أذكار الصباح والمساء
+// مع دعم المفضلة
 // ============================================================
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Loader2 } from "lucide-react";
-import { useAllCategories } from "@/hooks/useAdhkar";
-import type { GroupedCategory } from "@/lib/adhkar-api";
+import { BookOpen, Heart, Moon, Sun } from "lucide-react";
+import { ADHKAR_CATEGORIES, AdhkarCategoryInfo } from "@/lib/adhkar-api";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { categories, loading, error } = useAllCategories();
 
   return (
     <div
-      className="fixed inset-0 flex flex-col overflow-hidden"
+      className="min-h-screen flex flex-col"
       style={{ background: "var(--gradient-hero)" }}
       dir="rtl"
     >
@@ -37,40 +36,28 @@ const Home: React.FC = () => {
           </p>
         </div>
 
-        {!loading && categories.length > 0 && (
-          <div className="flex gap-3 mt-5 justify-center">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-emerald-border bg-emerald-surface">
-              <BookOpen className="w-3.5 h-3.5 text-gold" />
-              <span className="text-cream-dim text-xs font-arabic">
-                {categories.length} قسم
-              </span>
-            </div>
+        {/* إحصائيات */}
+        <div className="flex gap-3 mt-5 justify-center">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-emerald-border bg-emerald-surface">
+            <BookOpen className="w-3.5 h-3.5 text-gold" />
+            <span className="text-cream-dim text-xs font-arabic">
+              {ADHKAR_CATEGORIES.length} قسم
+            </span>
           </div>
-        )}
+        </div>
       </header>
 
       {/* ── المحتوى ── */}
       <main className="flex-1 overflow-y-auto px-4 pb-8">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-12">
-            <Loader2 className="w-8 h-8 text-gold animate-spin" />
-            <p className="text-cream-dim text-sm font-arabic">جاري تحميل الأقسام...</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-12">
-            <p className="text-destructive text-sm font-arabic">{error}</p>
-          </div>
-        ) : (
-          <div className="max-w-lg mx-auto space-y-3">
-            {categories.map((cat) => (
-              <CategoryCard
-                key={cat.id}
-                category={cat}
-                onNavigate={() => navigate(`/adhkar/${cat.id}`)}
-              />
-            ))}
-          </div>
-        )}
+        <div className="max-w-lg mx-auto space-y-4">
+          {ADHKAR_CATEGORIES.map((cat) => (
+            <CategoryCard
+              key={cat.id}
+              category={cat}
+              onNavigate={() => navigate(`/adhkar/${cat.id}`)}
+            />
+          ))}
+        </div>
       </main>
 
       {/* ── التذييل ── */}
@@ -84,23 +71,38 @@ const Home: React.FC = () => {
 };
 
 // ── بطاقة القسم ──
-const CategoryCard: React.FC<{ category: GroupedCategory; onNavigate: () => void }> = ({ category, onNavigate }) => {
+interface CategoryCardProps {
+  category: AdhkarCategoryInfo;
+  onNavigate: () => void;
+}
+
+const CategoryCard: React.FC<CategoryCardProps> = ({ category, onNavigate }) => {
+  const IconComponent = category.id === "morning" ? Sun : Moon;
+
   return (
     <button
       onClick={onNavigate}
       className="group relative w-full rounded-2xl border border-emerald-border overflow-hidden transition-all duration-300 hover:border-gold/30 active:scale-[0.98]"
       style={{ background: "var(--gradient-card)" }}
     >
-      <div className="flex items-center gap-4 px-5 py-4">
-        <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center text-xl">
-          {category.icon}
+      <div className="flex items-center gap-4 px-5 py-5">
+        {/* أيقونة القسم */}
+        <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center">
+          <IconComponent className="w-7 h-7 text-gold" />
         </div>
+
+        {/* النص */}
         <div className="flex-1 min-w-0 text-right">
-          <h3 className="text-cream text-base font-arabic font-bold leading-snug truncate">
+          <h3 className="text-cream text-lg font-arabic font-bold leading-snug">
             {category.name}
           </h3>
+          <p className="text-cream-dim/70 text-xs font-arabic mt-1">
+            {category.description}
+          </p>
         </div>
-        <span className="text-cream-dim/40 text-lg">‹</span>
+
+        {/* أيقونة الانتقال */}
+        <span className="text-2xl">{category.icon}</span>
       </div>
     </button>
   );
