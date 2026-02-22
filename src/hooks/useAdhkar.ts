@@ -1,18 +1,19 @@
 // ============================================================
 // خطاف (Hook) مخصص لإدارة حالة الأذكار
-// يشمل: جلب البيانات، حجم الخط، تتبع المقروء، المفضلة
+// يشمل: جلب البيانات، حجم الخط، تتبع المقروء
 // ============================================================
 
 import { useState, useEffect, useCallback } from "react";
 import {
   AdhkarItem,
-  AdhkarCategoryId,
-  fetchAdhkarByCategory,
+  GroupedCategory,
+  fetchCategoryIndex,
+  fetchCategoryDetail,
 } from "@/lib/adhkar-api";
 
-// ── جلب أذكار قسم معين ──
-export function useAdhkarList(categoryId: AdhkarCategoryId) {
-  const [adhkar, setAdhkar] = useState<AdhkarItem[]>([]);
+// ── جلب فهرس جميع الأقسام ──
+export function useAllCategories() {
+  const [categories, setCategories] = useState<GroupedCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +22,40 @@ export function useAdhkarList(categoryId: AdhkarCategoryId) {
     setLoading(true);
     setError(null);
 
-    fetchAdhkarByCategory(categoryId)
+    fetchCategoryIndex()
+      .then((data) => {
+        if (!cancelled) {
+          setCategories(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err.message || "تعذر تحميل الأقسام");
+          setLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  return { categories, loading, error };
+}
+
+// ── جلب أذكار قسم معين (بالـ ID ورابط التفاصيل) ──
+export function useAdhkarDetail(categoryId: number | null, detailUrl: string | null) {
+  const [adhkar, setAdhkar] = useState<AdhkarItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (categoryId === null || !detailUrl) return;
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetchCategoryDetail(categoryId, detailUrl)
       .then((data) => {
         if (!cancelled) {
           setAdhkar(data);
@@ -36,7 +70,7 @@ export function useAdhkarList(categoryId: AdhkarCategoryId) {
       });
 
     return () => { cancelled = true; };
-  }, [categoryId]);
+  }, [categoryId, detailUrl]);
 
   return { adhkar, loading, error };
 }
@@ -57,11 +91,9 @@ export function useFontSize() {
   const setFontSize = useCallback((size: FontSize) => {
     setFontSizeState(size);
     try { localStorage.setItem(FONT_SIZE_KEY, size); } catch {}
-    // تحديث متغير CSS مباشرة على مستوى المستند
     document.documentElement.style.setProperty("--adhkar-font-size", fontSizeToRem(size));
   }, []);
 
-  // تطبيق الحجم عند التحميل الأول
   useEffect(() => {
     document.documentElement.style.setProperty("--adhkar-font-size", fontSizeToRem(fontSize));
   }, []);
@@ -71,16 +103,16 @@ export function useFontSize() {
 
 function fontSizeToRem(size: FontSize): string {
   const map: Record<FontSize, string> = {
-    sm: "1.125rem",  // 18px
-    md: "1.375rem",  // 22px
-    lg: "1.75rem",   // 28px
-    xl: "2.125rem",  // 34px
+    sm: "1.125rem",
+    md: "1.375rem",
+    lg: "1.75rem",
+    xl: "2.125rem",
   };
   return map[size];
 }
 
 // ── تتبع الأذكار المقروءة في الجلسة الحالية ──
-export function useReadTracker(categoryId: AdhkarCategoryId) {
+export function useReadTracker(categoryId: number) {
   const storageKey = `adhkar-read-${categoryId}`;
 
   const [readSet, setReadSet] = useState<Set<number>>(() => {
@@ -102,7 +134,6 @@ export function useReadTracker(categoryId: AdhkarCategoryId) {
 
   const isRead = useCallback((index: number) => readSet.has(index), [readSet]);
 
-  // إعادة تعيين عند تغيير القسم
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(storageKey);
