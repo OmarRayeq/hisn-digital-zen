@@ -20,8 +20,6 @@ const CounterButton: React.FC<CounterButtonProps> = ({
 }) => {
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
   const [isPressed, setIsPressed] = useState(false);
-
-  // مانع الارتداد — لمنع النقر المزدوج العشوائي على الهواتف
   const lastTapTime = useRef(0);
   const DEBOUNCE_MS = 200;
 
@@ -29,45 +27,37 @@ const CounterButton: React.FC<CounterButtonProps> = ({
   const circumference = 2 * Math.PI * 56;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
-  // إضافة تأثير الموجة عند النقر
   const addRipple = useCallback((x: number, y: number) => {
     const id = Date.now();
     setRipples((prev) => [...prev, { id, x, y }]);
     setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 600);
   }, []);
 
-  // معالجة أحداث اللمس فقط — لمنع تكرار onClick + onTouchStart
+  // معالجة أحداث اللمس — مع منع النقر المزدوج
   const handleTouchStart = useCallback(
     (e: React.TouchEvent<HTMLButtonElement>) => {
-      // منع السلوك الافتراضي (يمنع النقر المزدوج والتكبير)
       e.preventDefault();
       if (completed) return;
 
-      // فحص مانع الارتداد
       const now = Date.now();
       if (now - lastTapTime.current < DEBOUNCE_MS) return;
       lastTapTime.current = now;
 
-      // حساب موقع الموجة
       const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.touches[0].clientX - rect.left;
-      const y = e.touches[0].clientY - rect.top;
-      addRipple(x, y);
+      addRipple(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
 
       setIsPressed(true);
       setTimeout(() => setIsPressed(false), 150);
-
       onTap();
     },
     [completed, onTap, addRipple]
   );
 
-  // معالجة النقر بالماوس (للأجهزة غير اللمسية)
+  // معالجة الماوس (للأجهزة غير اللمسية)
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       if (completed) return;
 
-      // فحص مانع الارتداد
       const now = Date.now();
       if (now - lastTapTime.current < DEBOUNCE_MS) return;
       lastTapTime.current = now;
@@ -77,7 +67,6 @@ const CounterButton: React.FC<CounterButtonProps> = ({
 
       setIsPressed(true);
       setTimeout(() => setIsPressed(false), 150);
-
       onTap();
     },
     [completed, onTap, addRipple]
@@ -86,26 +75,16 @@ const CounterButton: React.FC<CounterButtonProps> = ({
   return (
     <div className="flex items-center justify-center gap-8 w-full">
       {/* زر إعادة التعيين */}
-      <button
-        onClick={onReset}
-        className="flex flex-col items-center gap-1.5 group"
-        title="إعادة تعيين"
-      >
-        <div className="w-12 h-12 rounded-2xl bg-emerald-surface border border-emerald-border flex items-center justify-center transition-all duration-200 group-hover:border-gold/50 group-hover:bg-emerald-mid group-active:scale-95">
+      <button onClick={onReset} className="flex flex-col items-center gap-1.5 group" title="إعادة تعيين">
+        <div className="w-12 h-12 rounded-2xl glass-card border border-emerald-border flex items-center justify-center transition-all duration-200 group-hover:border-gold/50 group-active:scale-95">
           <RotateCcw className="w-5 h-5 text-cream-dim group-hover:text-gold transition-colors" />
         </div>
         <span className="text-xs text-cream-dim group-hover:text-cream transition-colors">إعادة</span>
       </button>
 
-      {/* دائرة العداد الرئيسية */}
+      {/* دائرة العداد */}
       <div className="relative flex items-center justify-center">
-        {/* حلقة التقدم */}
-        <svg
-          className="absolute inset-0 w-full h-full -rotate-90"
-          width="160"
-          height="160"
-          viewBox="0 0 160 160"
-        >
+        <svg className="absolute inset-0 w-full h-full -rotate-90" width="160" height="160" viewBox="0 0 160 160">
           <circle cx="80" cy="80" r="56" fill="none" stroke="hsl(150 25% 18%)" strokeWidth="4" />
           <circle
             cx="80" cy="80" r="56"
@@ -124,7 +103,6 @@ const CounterButton: React.FC<CounterButtonProps> = ({
           />
         </svg>
 
-        {/* الزر — يستخدم onTouchStart فقط على اللمس و onClick على الماوس */}
         <button
           onClick={handleClick}
           onTouchStart={handleTouchStart}
@@ -148,22 +126,20 @@ const CounterButton: React.FC<CounterButtonProps> = ({
               key={r.id}
               className="absolute rounded-full bg-gold/20 pointer-events-none animate-ping"
               style={{
-                left: r.x - 20,
-                top: r.y - 20,
-                width: 40,
-                height: 40,
+                left: r.x - 20, top: r.y - 20,
+                width: 40, height: 40,
                 animationDuration: "0.6s",
                 animationIterationCount: 1,
               }}
             />
           ))}
 
-          {/* المحتوى */}
+          {/* المحتوى — "تم" عند الاكتمال */}
           <div className="relative z-10 flex flex-col items-center justify-center h-full gap-0.5">
             {completed ? (
               <>
                 <span className="text-4xl">✓</span>
-                <span className="text-gold text-xs font-arabic">مكتمل</span>
+                <span className="text-gold text-xs font-arabic">تم</span>
               </>
             ) : (
               <>
@@ -189,12 +165,8 @@ const CounterButton: React.FC<CounterButtonProps> = ({
       </div>
 
       {/* زر الإعدادات */}
-      <button
-        onClick={onSettings}
-        className="flex flex-col items-center gap-1.5 group"
-        title="الإعدادات"
-      >
-        <div className="w-12 h-12 rounded-2xl bg-emerald-surface border border-emerald-border flex items-center justify-center transition-all duration-200 group-hover:border-gold/50 group-hover:bg-emerald-mid group-active:scale-95">
+      <button onClick={onSettings} className="flex flex-col items-center gap-1.5 group" title="الإعدادات">
+        <div className="w-12 h-12 rounded-2xl glass-card border border-emerald-border flex items-center justify-center transition-all duration-200 group-hover:border-gold/50 group-active:scale-95">
           <Settings className="w-5 h-5 text-cream-dim group-hover:text-gold transition-colors" />
         </div>
         <span className="text-xs text-cream-dim group-hover:text-cream transition-colors">خيارات</span>

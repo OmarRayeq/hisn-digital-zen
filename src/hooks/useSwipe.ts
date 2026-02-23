@@ -1,6 +1,5 @@
 // ============================================================
-// خطاف (Hook) للتعرف على إيماءة السحب الأفقي
-// يميّز بين السحب والنقر لمنع التداخل مع زر العداد
+// خطاف السحب الأفقي — مع تفاعل لمسي (Haptic Feedback)
 // ============================================================
 
 import { useRef, useCallback } from "react";
@@ -11,12 +10,14 @@ interface SwipeHandlers {
 }
 
 interface UseSwipeOptions {
-  /** الحد الأدنى لمسافة السحب بالبكسل */
   threshold?: number;
-  /** عند السحب لليسار (الذكر التالي في RTL) */
   onSwipeLeft?: () => void;
-  /** عند السحب لليمين (الذكر السابق في RTL) */
   onSwipeRight?: () => void;
+}
+
+// تفاعل لمسي خفيف
+function haptic(ms: number = 10) {
+  try { navigator.vibrate?.(ms); } catch {}
 }
 
 export function useSwipe({
@@ -36,14 +37,16 @@ export function useSwipe({
     const deltaX = e.changedTouches[0].clientX - startX.current;
     const deltaY = e.changedTouches[0].clientY - startY.current;
 
-    // تجاهل السحب العمودي — فقط الأفقي
+    // تجاهل السحب العمودي
     if (Math.abs(deltaX) < threshold || Math.abs(deltaY) > Math.abs(deltaX)) return;
 
+    haptic(15);
+
     if (deltaX > 0) {
-      // سحب لليمين → في RTL = الذكر السابق
+      // سحب لليمين → التالي (RTL)
       onSwipeRight?.();
     } else {
-      // سحب لليسار → في RTL = الذكر التالي
+      // سحب لليسار → السابق (RTL)
       onSwipeLeft?.();
     }
   }, [threshold, onSwipeLeft, onSwipeRight]);

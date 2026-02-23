@@ -1,27 +1,25 @@
 // ============================================================
-// صفحة قراءة الأذكار (صباح/مساء)
-// تخطيط ثابت + تمرير داخلي + حالة جلسة + haptic feedback
+// صفحة قراءة أذكار حصن المسلم (من API hisnmuslim.com)
+// تخطيط ثابت مع تمرير داخلي + حالة جلسة + haptic feedback
 // ============================================================
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronRight, ChevronLeft, ArrowRight, Loader2 } from "lucide-react";
-import { AdhkarCategoryId, ADHKAR_CATEGORIES } from "@/lib/adhkar-api";
-import { useAdhkarList, useFontSize, useReadTracker } from "@/hooks/useAdhkar";
+import { useHisnDetail, useFontSize, useReadTracker } from "@/hooks/useAdhkar";
 import { useSwipe } from "@/hooks/useSwipe";
 import CounterButton from "@/components/CounterButton";
 import SettingsModal from "@/components/SettingsModal";
 import ProgressDots from "@/components/ProgressDots";
 
-const AdhkarReader: React.FC = () => {
+const HisnReader: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const navigate = useNavigate();
-  const catId = (categoryId as AdhkarCategoryId) || "morning";
-  const categoryInfo = ADHKAR_CATEGORIES.find((c) => c.id === catId);
+  const numericId = categoryId ? parseInt(categoryId, 10) : null;
 
-  const { adhkar, loading, error } = useAdhkarList(catId);
+  const { adhkar, loading, error } = useHisnDetail(numericId);
   const { fontSize, setFontSize } = useFontSize();
-  const { markAsRead, unmarkAsRead, isRead, readCount } = useReadTracker(catId);
+  const { markAsRead, unmarkAsRead, isRead, readCount } = useReadTracker(`hisn-${numericId}`);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [remaining, setRemaining] = useState(0);
@@ -35,7 +33,6 @@ const AdhkarReader: React.FC = () => {
   useEffect(() => {
     if (currentDhikr) {
       if (isRead(currentIndex)) {
-        // ذكر مقروء سابقاً في هذه الجلسة → يبقى على حالة "تم"
         setRemaining(0);
       } else {
         setRemaining(currentDhikr.REPEAT || 1);
@@ -80,11 +77,9 @@ const AdhkarReader: React.FC = () => {
     onSwipeLeft: goPrev,    // سحب لليسار → السابق (RTL)
   });
 
-  // ── معالجة النقر — مع تفاعل لمسي ──
+  // ── معالجة النقر ──
   const handleTap = useCallback(() => {
     if (remaining <= 0 || allCompleted) return;
-
-    // تفاعل لمسي
     try { navigator.vibrate?.(10); } catch {}
 
     const next = remaining - 1;
@@ -92,12 +87,10 @@ const AdhkarReader: React.FC = () => {
 
     if (next === 0) {
       markAsRead(currentIndex);
-      try { navigator.vibrate?.(30); } catch {}
       setTimeout(() => advanceToNext(), 800);
     }
   }, [remaining, allCompleted, advanceToNext, markAsRead, currentIndex]);
 
-  // ── إعادة تعيين — يمسح حالة الانتهاء من sessionStorage ──
   const handleReset = useCallback(() => {
     if (currentDhikr) {
       setRemaining(currentDhikr.REPEAT || 1);
@@ -144,23 +137,18 @@ const AdhkarReader: React.FC = () => {
 
           <div className="flex-1 mx-3 text-center">
             <h1 className="text-gold text-base font-arabic font-bold leading-tight truncate">
-              {categoryInfo?.name || "أذكار"}
+              حصن المسلم
             </h1>
             <p className="text-cream-dim text-xs font-arabic mt-0.5">
               {currentIndex + 1} / {adhkar.length}
-              {readCount > 0 && (
-                <span className="text-gold mr-2">• {readCount} مكتمل</span>
-              )}
             </p>
           </div>
 
-          {/* أسهم التنقل — RTL: يسار = التالي، يمين = السابق */}
           <div className="flex items-center gap-2">
             <button
               onClick={goNext}
               disabled={currentIndex >= adhkar.length - 1}
               className="w-9 h-9 rounded-xl glass-card border border-emerald-border flex items-center justify-center text-cream-dim hover:text-gold disabled:opacity-30 transition-all"
-              title="الذكر التالي"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -168,7 +156,6 @@ const AdhkarReader: React.FC = () => {
               onClick={goPrev}
               disabled={currentIndex === 0}
               className="w-9 h-9 rounded-xl glass-card border border-emerald-border flex items-center justify-center text-cream-dim hover:text-gold disabled:opacity-30 transition-all"
-              title="الذكر السابق"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -178,7 +165,7 @@ const AdhkarReader: React.FC = () => {
         <ProgressDots total={adhkar.length} current={currentIndex} onDotClick={goToIndex} />
       </header>
 
-      {/* ═══ المحتوى — تمرير داخلي فقط ═══ */}
+      {/* ═══ المحتوى ═══ */}
       <main
         className="flex-1 overflow-y-auto px-4 pb-4"
         style={{ touchAction: "pan-y" }}
@@ -195,34 +182,25 @@ const AdhkarReader: React.FC = () => {
             >
               ✓
             </div>
-            <p className="text-gold text-xl font-arabic font-bold">
-              أحسنت! اكتملت {categoryInfo?.name || "الأذكار"}
-            </p>
-            <p className="text-cream-dim text-sm font-arabic text-center">
-              تقبّل الله منك صالح الأعمال
-            </p>
+            <p className="text-gold text-xl font-arabic font-bold">أحسنت! اكتملت الأذكار</p>
+            <p className="text-cream-dim text-sm font-arabic text-center">تقبّل الله منك صالح الأعمال</p>
             <div className="flex gap-3 mt-2">
               <button
                 onClick={() => { setCurrentIndex(0); setAllCompleted(false); }}
-                className="px-5 py-3 rounded-2xl font-arabic text-sm border border-gold/50 text-gold bg-gold/10 hover:bg-gold/20 transition-all"
+                className="px-5 py-3 rounded-2xl font-arabic text-sm border border-gold/50 text-gold bg-gold/10"
               >
                 إعادة من البداية
               </button>
               <button
                 onClick={() => navigate("/")}
-                className="px-5 py-3 rounded-2xl font-arabic text-sm border border-emerald-border text-cream-dim bg-emerald-surface hover:border-gold/30 transition-all"
+                className="px-5 py-3 rounded-2xl font-arabic text-sm border border-emerald-border text-cream-dim bg-emerald-surface"
               >
                 الرئيسية
               </button>
             </div>
           </div>
         ) : currentDhikr ? (
-          <div
-            className={`flex flex-col gap-4 w-full transition-all duration-200 ${
-              isTransitioning ? "opacity-0 scale-95" : "opacity-100 scale-100"
-            }`}
-          >
-            {/* بطاقة النص */}
+          <div className={`flex flex-col gap-4 w-full transition-all duration-200 ${isTransitioning ? "opacity-0 scale-95" : "opacity-100 scale-100"}`}>
             <div
               className="relative glass-card rounded-3xl p-6 border border-emerald-border overflow-hidden"
               style={{ boxShadow: "var(--shadow-card)" }}
@@ -253,7 +231,6 @@ const AdhkarReader: React.FC = () => {
               </div>
             </div>
 
-            {/* شارة التكرار */}
             {currentDhikr.REPEAT > 1 && (
               <div className="flex justify-center">
                 <span className="text-xs px-3 py-1 rounded-full glass-card border border-emerald-border text-cream-dim font-arabic">
@@ -261,18 +238,11 @@ const AdhkarReader: React.FC = () => {
                 </span>
               </div>
             )}
-
-            {/* زر الاستماع */}
-            {currentDhikr.AUDIO && (
-              <div className="flex justify-center">
-                <AudioButton audioUrl={currentDhikr.AUDIO} />
-              </div>
-            )}
           </div>
         ) : null}
       </main>
 
-      {/* ═══ منطقة العداد (ثابتة أسفل الشاشة) ═══ */}
+      {/* ═══ العداد ═══ */}
       {!allCompleted && currentDhikr && (
         <div className="flex-none px-4 py-5 border-t border-emerald-border glass-footer">
           <CounterButton
@@ -284,7 +254,7 @@ const AdhkarReader: React.FC = () => {
             completed={remaining === 0}
           />
           <p className="text-center text-cream-dim text-xs font-arabic mt-3 opacity-50">
-            اضغط الدائرة للتسبيح • اسحب للتنقل بين الأذكار
+            اضغط الدائرة للتسبيح • اسحب للتنقل
           </p>
         </div>
       )}
@@ -299,32 +269,4 @@ const AdhkarReader: React.FC = () => {
   );
 };
 
-// ── مكون زر الاستماع ──
-const AudioButton: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
-  const [playing, setPlaying] = useState(false);
-
-  const handlePlay = () => {
-    if (!audioUrl) return;
-    setPlaying(true);
-    const audio = new Audio(audioUrl.replace("http://", "https://"));
-    audio.play();
-    audio.onended = () => setPlaying(false);
-    audio.onerror = () => setPlaying(false);
-  };
-
-  return (
-    <button
-      onClick={handlePlay}
-      className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-arabic border transition-all duration-200 ${
-        playing
-          ? "bg-gold/20 border-gold/50 text-gold"
-          : "glass-card border-emerald-border text-cream-dim hover:border-gold/40 hover:text-cream"
-      }`}
-    >
-      <span>🔊</span>
-      <span>{playing ? "جاري التشغيل..." : "استماع"}</span>
-    </button>
-  );
-};
-
-export default AdhkarReader;
+export default HisnReader;
