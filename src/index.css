@@ -92,7 +92,13 @@
     direction: rtl;
     background: var(--gradient-hero);
     min-height: 100vh;
-    overflow-x: hidden;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    /* منع سحب الصفحة على iOS */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Arabic text optimization */
@@ -168,4 +174,26 @@
 .counter-tap { animation: tap-ripple 0.4s ease-out forwards; }
 .dhikr-transition { animation: slide-in-up 0.4s ease-out; }
 .counter-completed { animation: completed-flash 0.5s ease-in-out; }
+
+/* ── تأثيرات Glassmorphism ── */
+.glass-card {
+  background: hsl(150 38% 11% / 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-footer {
+  background: linear-gradient(to top, hsl(150 54% 5% / 0.95), hsl(150 54% 6% / 0.85));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ── التخطيط الجذر ── */
+#root {
+  max-width: 640px;
+  margin: 0 auto;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
 

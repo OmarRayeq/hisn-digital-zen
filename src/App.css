@@ -1,13 +1,1 @@
-/* Hide scrollbar cross-browser */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Safe area padding for notched phones */
-.pt-safe-top { padding-top: env(safe-area-inset-top, 0px); }
-.pb-safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
-
-#root {
-  max-width: 640px;
-  margin: 0 auto;
-  min-height: 100vh;
-}
+/* هذا الملف تم نقل محتوياته إلى index.css */

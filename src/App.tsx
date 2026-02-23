@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import AdhkarReader from "./pages/AdhkarReader";
+import HisnReader from "./pages/HisnReader";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,7 +19,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/adhkar/:categoryId" element={<AdhkarReader />} />
-          {/* إعادة توجيه المسارات القديمة */}
+          <Route path="/hisn/:categoryId" element={<HisnReader />} />
           <Route path="/index" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
