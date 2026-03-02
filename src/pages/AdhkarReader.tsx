@@ -3,7 +3,7 @@
 // تخطيط ثابت + تمرير داخلي + حالة جلسة + haptic feedback
 // ============================================================
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronRight, ChevronLeft, ArrowRight, Loader2 } from "lucide-react";
 import { AdhkarCategoryId, ADHKAR_CATEGORIES } from "@/lib/adhkar-api";
@@ -12,6 +12,35 @@ import { useSwipe } from "@/hooks/useSwipe";
 import CounterButton from "@/components/CounterButton";
 import SettingsModal from "@/components/SettingsModal";
 import ProgressDots from "@/components/ProgressDots";
+
+// ── مفتاح حفظ حالة العداد لكل ذكر في الجلسة ──
+function getRemainingKey(catId: string) {
+  return `adhkar-remaining-${catId}`;
+}
+function saveRemaining(catId: string, index: number, value: number) {
+  try {
+    const key = getRemainingKey(catId);
+    const data = JSON.parse(sessionStorage.getItem(key) || "{}");
+    data[index] = value;
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch {}
+}
+function loadRemaining(catId: string, index: number): number | null {
+  try {
+    const key = getRemainingKey(catId);
+    const data = JSON.parse(sessionStorage.getItem(key) || "{}");
+    if (typeof data[index] === "number") return data[index];
+  } catch {}
+  return null;
+}
+function clearRemaining(catId: string, index: number) {
+  try {
+    const key = getRemainingKey(catId);
+    const data = JSON.parse(sessionStorage.getItem(key) || "{}");
+    delete data[index];
+    sessionStorage.setItem(key, JSON.stringify(data));
+  } catch {}
+}
 
 const AdhkarReader: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -34,8 +63,11 @@ const AdhkarReader: React.FC = () => {
   // ── تهيئة العداد — مع استرجاع حالة الجلسة ──
   useEffect(() => {
     if (currentDhikr) {
-      if (isRead(currentIndex)) {
-        // ذكر مقروء سابقاً في هذه الجلسة → يبقى على حالة "تم"
+      const saved = loadRemaining(catId, currentIndex);
+      if (saved !== null) {
+        // استرجاع القيمة المحفوظة من الجلسة
+        setRemaining(saved);
+      } else if (isRead(currentIndex)) {
         setRemaining(0);
       } else {
         setRemaining(currentDhikr.REPEAT || 1);
@@ -80,7 +112,7 @@ const AdhkarReader: React.FC = () => {
     onSwipeLeft: goPrev,    // سحب لليسار → السابق (RTL)
   });
 
-  // ── معالجة النقر — مع تفاعل لمسي ──
+  // ── معالجة النقر — مع تفاعل لمسي وحفظ الحالة ──
   const handleTap = useCallback(() => {
     if (remaining <= 0 || allCompleted) return;
 
@@ -89,22 +121,38 @@ const AdhkarReader: React.FC = () => {
 
     const next = remaining - 1;
     setRemaining(next);
+    // حفظ حالة العداد في الجلسة
+    saveRemaining(catId, currentIndex, next);
 
     if (next === 0) {
       markAsRead(currentIndex);
       try { navigator.vibrate?.(30); } catch {}
       setTimeout(() => advanceToNext(), 800);
     }
-  }, [remaining, allCompleted, advanceToNext, markAsRead, currentIndex]);
+  }, [remaining, allCompleted, advanceToNext, markAsRead, currentIndex, catId]);
 
-  // ── إعادة تعيين — يمسح حالة الانتهاء من sessionStorage ──
+  // ── دعم زر خفض الصوت لتشغيل العداد ──
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "VolumeDown" || e.key === "AudioVolumeDown") {
+        e.preventDefault();
+        handleTap();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleTap]);
+
+  // ── إعادة تعيين — يمسح حالة الانتهاء والعداد من sessionStorage ──
   const handleReset = useCallback(() => {
     if (currentDhikr) {
-      setRemaining(currentDhikr.REPEAT || 1);
+      const resetVal = currentDhikr.REPEAT || 1;
+      setRemaining(resetVal);
       unmarkAsRead(currentIndex);
+      clearRemaining(catId, currentIndex);
     }
     setAllCompleted(false);
-  }, [currentDhikr, currentIndex, unmarkAsRead]);
+  }, [currentDhikr, currentIndex, unmarkAsRead, catId]);
 
   if (loading) {
     return (
