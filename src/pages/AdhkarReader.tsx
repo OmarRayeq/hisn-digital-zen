@@ -9,7 +9,7 @@ import { ChevronRight, ChevronLeft, ArrowRight, Loader2, Star } from "lucide-rea
 import { AdhkarCategoryId, ADHKAR_CATEGORIES } from "@/lib/adhkar-api";
 import { useAdhkarList, useFontSize, useReadTracker } from "@/hooks/useAdhkar";
 import { useSwipe } from "@/hooks/useSwipe";
-import { useFavorites, useStreak, useHistory } from "@/hooks/useFavorites";
+import { useFavorites, useStreak, useHistory, useDailyProgress } from "@/hooks/useFavorites";
 import CounterButton from "@/components/CounterButton";
 import SettingsModal from "@/components/SettingsModal";
 import ProgressDots from "@/components/ProgressDots";
@@ -55,6 +55,7 @@ const AdhkarReader: React.FC = () => {
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   const { recordCompletion } = useStreak();
   const { addToHistory } = useHistory();
+  const { markMorningDone, markEveningDone, morningDone, eveningDone } = useDailyProgress();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [remaining, setRemaining] = useState(0);
@@ -105,9 +106,15 @@ const AdhkarReader: React.FC = () => {
       goToIndex(currentIndex + 1);
     } else {
       setAllCompleted(true);
-      recordCompletion(); // Record streak
+      // Mark morning or evening as done
+      if (catId === "morning") markMorningDone();
+      if (catId === "evening") markEveningDone();
+      // Check if both done now → record streak
+      const mDone = catId === "morning" ? true : morningDone;
+      const eDone = catId === "evening" ? true : eveningDone;
+      if (mDone && eDone) recordCompletion();
     }
-  }, [currentIndex, adhkar.length, goToIndex, recordCompletion]);
+  }, [currentIndex, adhkar.length, goToIndex, catId, markMorningDone, markEveningDone, morningDone, eveningDone, recordCompletion]);
 
   // RTL: يسار = التالي، يمين = السابق
   const goNext = useCallback(() => {
@@ -405,8 +412,8 @@ const AudioButton: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
     <button
       onClick={handlePlay}
       className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-arabic border transition-all duration-200 ${playing
-          ? "bg-gold/20 border-gold/50 text-gold"
-          : "glass-card border-emerald-border text-cream-dim hover:border-gold/40 hover:text-cream"
+        ? "bg-gold/20 border-gold/50 text-gold"
+        : "glass-card border-emerald-border text-cream-dim hover:border-gold/40 hover:text-cream"
         }`}
     >
       <span>🔊</span>

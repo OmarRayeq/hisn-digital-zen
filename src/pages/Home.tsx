@@ -8,10 +8,14 @@ import { useNavigate } from "react-router-dom";
 import { Sun, Moon, ChevronDown, ChevronUp, Loader2, Search, X } from "lucide-react";
 import { ADHKAR_CATEGORIES, AdhkarCategoryInfo, MasterCategory } from "@/lib/adhkar-api";
 import { useHisnCategories } from "@/hooks/useAdhkar";
+import { useDailyProgress, useStreak } from "@/hooks/useFavorites";
+import DailyProgressCard from "@/components/DailyProgressCard";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { categories: hisnGroups, loading: hisnLoading } = useHisnCategories();
+  const { morningDone, eveningDone } = useDailyProgress();
+  const { streak } = useStreak();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -85,6 +89,13 @@ const Home: React.FC = () => {
         style={{ touchAction: "pan-y", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
       >
         <div className="max-w-lg mx-auto space-y-4">
+          {/* ── Daily Progress Circle ── */}
+          <DailyProgressCard
+            morningDone={morningDone}
+            eveningDone={eveningDone}
+            streak={streak}
+          />
+
           {/* ── Featured: Morning & Evening ── */}
           <div className="space-y-3">
             {ADHKAR_CATEGORIES.map((cat, i) => (

@@ -5,9 +5,10 @@
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronRight, ChevronLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, ArrowRight, Loader2, Star } from "lucide-react";
 import { useHisnDetail, useFontSize, useReadTracker } from "@/hooks/useAdhkar";
 import { useSwipe } from "@/hooks/useSwipe";
+import { useFavorites, useHistory } from "@/hooks/useFavorites";
 import CounterButton from "@/components/CounterButton";
 import SettingsModal from "@/components/SettingsModal";
 import ProgressDots from "@/components/ProgressDots";
@@ -20,6 +21,18 @@ const HisnReader: React.FC = () => {
   const { adhkar, loading, error } = useHisnDetail(numericId);
   const { fontSize, setFontSize } = useFontSize();
   const { markAsRead, unmarkAsRead, isRead, readCount } = useReadTracker(`hisn-${numericId}`);
+  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+  const { addToHistory } = useHistory();
+
+  // Get category title from first adhkar item
+  const categoryTitle = adhkar.length > 0 ? (adhkar[0] as any).TITLE || `حصن المسلم #${numericId}` : `حصن المسلم #${numericId}`;
+
+  // Record to history
+  useEffect(() => {
+    if (adhkar.length > 0 && numericId) {
+      addToHistory({ path: `/hisn/${numericId}`, name: categoryTitle });
+    }
+  }, [numericId, adhkar.length]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [remaining, setRemaining] = useState(0);
@@ -80,7 +93,7 @@ const HisnReader: React.FC = () => {
   // ── معالجة النقر ──
   const handleTap = useCallback(() => {
     if (remaining <= 0 || allCompleted) return;
-    try { navigator.vibrate?.(10); } catch {}
+    try { navigator.vibrate?.(10); } catch { }
 
     const next = remaining - 1;
     setRemaining(next);
@@ -205,6 +218,36 @@ const HisnReader: React.FC = () => {
               className="relative glass-card rounded-3xl p-6 border border-emerald-border overflow-hidden"
               style={{ boxShadow: "var(--shadow-card)" }}
             >
+              {/* زر المفضلة */}
+              {(() => {
+                const favId = `hisn-${numericId}-${currentIndex}`;
+                const isFav = isFavorite(favId);
+                return (
+                  <button
+                    onClick={() => {
+                      if (isFav) {
+                        removeFavorite(favId);
+                      } else {
+                        addFavorite({
+                          id: favId,
+                          text: currentDhikr.ARABIC_TEXT.slice(0, 100),
+                          category: categoryTitle,
+                        });
+                      }
+                    }}
+                    className="absolute top-4 left-4 z-20 w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90"
+                    style={{
+                      background: isFav ? "hsl(40 52% 55% / 0.15)" : "transparent",
+                    }}
+                  >
+                    <Star
+                      className={`w-4.5 h-4.5 transition-colors ${isFav ? "text-gold fill-gold" : "text-cream-dim/30"
+                        }`}
+                    />
+                  </button>
+                );
+              })()}
+
               <div className="flex justify-center mb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-px w-12 bg-gradient-to-r from-transparent to-gold/40" />
