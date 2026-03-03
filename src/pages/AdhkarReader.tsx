@@ -5,10 +5,11 @@
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronRight, ChevronLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, ArrowRight, Loader2, Star } from "lucide-react";
 import { AdhkarCategoryId, ADHKAR_CATEGORIES } from "@/lib/adhkar-api";
 import { useAdhkarList, useFontSize, useReadTracker } from "@/hooks/useAdhkar";
 import { useSwipe } from "@/hooks/useSwipe";
+import { useFavorites, useStreak, useHistory } from "@/hooks/useFavorites";
 import CounterButton from "@/components/CounterButton";
 import SettingsModal from "@/components/SettingsModal";
 import ProgressDots from "@/components/ProgressDots";
@@ -23,14 +24,14 @@ function saveRemaining(catId: string, index: number, value: number) {
     const data = JSON.parse(sessionStorage.getItem(key) || "{}");
     data[index] = value;
     sessionStorage.setItem(key, JSON.stringify(data));
-  } catch {}
+  } catch { }
 }
 function loadRemaining(catId: string, index: number): number | null {
   try {
     const key = getRemainingKey(catId);
     const data = JSON.parse(sessionStorage.getItem(key) || "{}");
     if (typeof data[index] === "number") return data[index];
-  } catch {}
+  } catch { }
   return null;
 }
 function clearRemaining(catId: string, index: number) {
@@ -39,7 +40,7 @@ function clearRemaining(catId: string, index: number) {
     const data = JSON.parse(sessionStorage.getItem(key) || "{}");
     delete data[index];
     sessionStorage.setItem(key, JSON.stringify(data));
-  } catch {}
+  } catch { }
 }
 
 const AdhkarReader: React.FC = () => {
@@ -51,12 +52,22 @@ const AdhkarReader: React.FC = () => {
   const { adhkar, loading, error } = useAdhkarList(catId);
   const { fontSize, setFontSize } = useFontSize();
   const { markAsRead, unmarkAsRead, isRead, readCount } = useReadTracker(catId);
+  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+  const { recordCompletion } = useStreak();
+  const { addToHistory } = useHistory();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [allCompleted, setAllCompleted] = useState(false);
+
+  // Record to history on mount
+  useEffect(() => {
+    if (categoryInfo) {
+      addToHistory({ path: `/adhkar/${catId}`, name: categoryInfo.name });
+    }
+  }, [catId]);
 
   const currentDhikr = adhkar[currentIndex];
 
@@ -94,8 +105,9 @@ const AdhkarReader: React.FC = () => {
       goToIndex(currentIndex + 1);
     } else {
       setAllCompleted(true);
+      recordCompletion(); // Record streak
     }
-  }, [currentIndex, adhkar.length, goToIndex]);
+  }, [currentIndex, adhkar.length, goToIndex, recordCompletion]);
 
   // RTL: يسار = التالي، يمين = السابق
   const goNext = useCallback(() => {
@@ -117,7 +129,7 @@ const AdhkarReader: React.FC = () => {
     if (remaining <= 0 || allCompleted) return;
 
     // تفاعل لمسي
-    try { navigator.vibrate?.(10); } catch {}
+    try { navigator.vibrate?.(10); } catch { }
 
     const next = remaining - 1;
     setRemaining(next);
@@ -126,7 +138,7 @@ const AdhkarReader: React.FC = () => {
 
     if (next === 0) {
       markAsRead(currentIndex);
-      try { navigator.vibrate?.(30); } catch {}
+      try { navigator.vibrate?.(30); } catch { }
       setTimeout(() => advanceToNext(), 800);
     }
   }, [remaining, allCompleted, advanceToNext, markAsRead, currentIndex, catId]);
@@ -266,15 +278,44 @@ const AdhkarReader: React.FC = () => {
           </div>
         ) : currentDhikr ? (
           <div
-            className={`flex flex-col gap-4 w-full transition-all duration-200 ${
-              isTransitioning ? "opacity-0 scale-95" : "opacity-100 scale-100"
-            }`}
+            className={`flex flex-col gap-4 w-full transition-all duration-200 ${isTransitioning ? "opacity-0 scale-95" : "opacity-100 scale-100"
+              }`}
           >
             {/* بطاقة النص */}
             <div
               className="relative glass-card rounded-3xl p-6 border border-emerald-border overflow-hidden"
               style={{ boxShadow: "var(--shadow-card)" }}
             >
+              {/* زر المفضلة */}
+              {(() => {
+                const favId = `adhkar-${catId}-${currentIndex}`;
+                const isFav = isFavorite(favId);
+                return (
+                  <button
+                    onClick={() => {
+                      if (isFav) {
+                        removeFavorite(favId);
+                      } else {
+                        addFavorite({
+                          id: favId,
+                          text: currentDhikr.ARABIC_TEXT.slice(0, 100),
+                          category: categoryInfo?.name || "أذكار",
+                        });
+                      }
+                    }}
+                    className="absolute top-4 left-4 z-20 w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90"
+                    style={{
+                      background: isFav ? "hsl(40 52% 55% / 0.15)" : "transparent",
+                    }}
+                  >
+                    <Star
+                      className={`w-4.5 h-4.5 transition-colors ${isFav ? "text-gold fill-gold" : "text-cream-dim/30"
+                        }`}
+                    />
+                  </button>
+                );
+              })()}
+
               <div className="flex justify-center mb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-px w-12 bg-gradient-to-r from-transparent to-gold/40" />
@@ -363,11 +404,10 @@ const AudioButton: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
   return (
     <button
       onClick={handlePlay}
-      className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-arabic border transition-all duration-200 ${
-        playing
+      className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-arabic border transition-all duration-200 ${playing
           ? "bg-gold/20 border-gold/50 text-gold"
           : "glass-card border-emerald-border text-cream-dim hover:border-gold/40 hover:text-cream"
-      }`}
+        }`}
     >
       <span>🔊</span>
       <span>{playing ? "جاري التشغيل..." : "استماع"}</span>

@@ -128,12 +128,12 @@ const Home: React.FC = () => {
         </div>
       </main>
 
-      {/* ── التذييل ── */}
-      <footer className="flex-none px-4 py-3 text-center">
-        <p className="text-cream-dim text-xs font-arabic opacity-30 leading-relaxed">
-          ﴿ وَاذْكُرُوا اللَّهَ كَثِيرًا لَّعَلَّكُمْ تُفْلِحُونَ ﴾
+      {/* ── الآية الكريمة — ثابتة أسفل الصفحة ── */}
+      <div className="flex-none px-4 py-2 border-t border-emerald-border/30">
+        <p className="text-cream-dim text-xs font-arabic opacity-25 leading-relaxed text-center">
+          ﴿ وَاذْكُرُوا اللَّهَ كَثِيرًا لَّعَلَّكُمْ تُفْلِحُونَ ﴾
         </p>
-      </footer>
+      </div>
     </div>
   );
 };
@@ -155,8 +155,7 @@ const FeaturedCard: React.FC<FeaturedCardProps> = ({ category, index, onNavigate
         }`}
       style={{
         border: "1px solid hsl(40 52% 55% / 0.15)",
-        boxShadow: "0 8px 32px hsl(0 0% 0% / 0.3), inset 0 1px 0 hsl(40 52% 55% / 0.06)",
-        backdropFilter: "blur(20px)",
+        boxShadow: "0 4px 20px hsl(0 0% 0% / 0.25), inset 0 1px 0 hsl(40 52% 55% / 0.06)",
       }}
     >
       <div className="flex items-center gap-4 px-6 py-6">
