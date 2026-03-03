@@ -6,6 +6,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  base: "/hisn-digital-zen/",
   server: {
     host: "::",
     port: 8080,
@@ -28,7 +29,7 @@ export default defineConfig(({ mode }) => ({
         display: "standalone",
         dir: "rtl",
         lang: "ar",
-        start_url: "/",
+        start_url: "./",
         icons: [
           {
             src: "pwa-icon-192.png",
