@@ -75,7 +75,8 @@ const Tasbeeh: React.FC = () => {
     const [ripples, setRipples] = useState<RippleItem[]>([]);
     const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
     const [showCompletion, setShowCompletion] = useState(false);
-    const [textKey, setTextKey] = useState(0); // for fade animation trigger
+    const [textKey, setTextKey] = useState(0);
+    const [countKey, setCountKey] = useState(0); // for count bounce animation
     const buttonRef = useRef<HTMLButtonElement>(null);
     const rippleIdRef = useRef(0);
 
@@ -83,10 +84,12 @@ const Tasbeeh: React.FC = () => {
     const remaining = Math.max(0, activePreset.target - state.count);
     const progress = activePreset.target > 0 ? (state.count / activePreset.target) * 100 : 0;
 
-    // SVG ring dimensions
-    const ringRadius = 80;
+    // SVG ring dimensions — larger for premium feel
+    const ringRadius = 90;
+    const ringSize = 260;
     const circumference = 2 * Math.PI * ringRadius;
     const strokeDashoffset = circumference - (Math.min(progress, 100) / 100) * circumference;
+    const progressPercent = Math.round(Math.min(progress, 100));
 
     const today = new Date().toISOString().slice(0, 10);
 
@@ -138,6 +141,9 @@ const Tasbeeh: React.FC = () => {
         setTimeout(() => {
             setRipples((prev) => prev.filter((r) => r.id !== id));
         }, 650);
+
+        // Trigger count bounce
+        setCountKey((k) => k + 1);
 
         // Update count
         setState((prev) => {
@@ -199,16 +205,19 @@ const Tasbeeh: React.FC = () => {
             </div>
 
             {/* ── Header ── */}
-            <header className="flex-none px-5 pt-8 pb-2 relative z-10">
+            <header className="flex-none px-5 pt-8 pb-3 relative z-10">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-gold text-2xl font-arabic font-bold" style={{
-                        textShadow: "0 0 20px hsl(40 52% 55% / 0.3)",
-                    }}>المسبحة</h1>
-                    <div className="flex flex-col items-end gap-1">
+                    <div>
+                        <h1 className="text-gold text-2xl font-arabic font-bold" style={{
+                            textShadow: "0 0 20px hsl(40 52% 55% / 0.3)",
+                        }}>المسبحة</h1>
+                        <p className="text-cream-dim/40 text-[10px] font-arabic mt-0.5">سبّح واذكر الله</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5">
                         <span className="text-cream-dim text-xs font-arabic">
-                            🕐 اليوم: {state.totalToday} تسبيحة
+                            🕐 اليوم: <span className="text-gold font-bold">{state.totalToday}</span> تسبيحة
                         </span>
-                        <div className="today-stats-bar w-20">
+                        <div className="today-stats-bar w-24">
                             <div
                                 className="today-stats-fill"
                                 style={{ width: `${todayProgress}%` }}
@@ -216,50 +225,89 @@ const Tasbeeh: React.FC = () => {
                         </div>
                     </div>
                 </div>
+                {/* Golden separator line */}
+                <div className="mt-3 h-px w-full" style={{
+                    background: "linear-gradient(to left, transparent, hsl(40 52% 55% / 0.2) 30%, hsl(40 52% 55% / 0.3) 50%, hsl(40 52% 55% / 0.2) 70%, transparent)"
+                }} />
             </header>
 
             {/* ── Counter Area ── */}
-            <main className="flex-1 flex flex-col items-center justify-center gap-5 px-4 relative z-10">
+            <main className="flex-1 flex flex-col items-center justify-center gap-4 px-4 relative z-10">
                 {/* Dhikr text with fade animation */}
                 <p
                     key={textKey}
                     className="text-cream text-2xl font-arabic font-bold text-center leading-relaxed text-fade-in"
-                    style={{ textShadow: "0 2px 12px hsl(0 0% 0% / 0.3)" }}
+                    style={{ textShadow: "0 2px 16px hsl(40 52% 55% / 0.15), 0 1px 4px hsl(0 0% 0% / 0.3)" }}
                 >
                     {activePreset.text}
                 </p>
 
-                {/* Circular counter with glow ring */}
-                <div className={`relative flex items-center justify-center ${showCompletion ? "completion-flash" : ""}`}
-                    style={{ borderRadius: "50%" }}
-                >
+                {/* Circular counter with decorative bezel + glow ring */}
+                <div className={`relative flex items-center justify-center ${showCompletion ? "completion-flash" : ""}`}>
+                    {/* Decorative outer bezel */}
+                    <div className="tasbeeh-bezel" />
+
                     {/* SVG Ring */}
                     <svg
-                        className={`absolute inset-0 w-full h-full -rotate-90 ${remaining > 0 ? "ring-glow-active" : ""}`}
-                        width="220"
-                        height="220"
-                        viewBox="0 0 220 220"
+                        className={`absolute -rotate-90 ${remaining > 0 ? "ring-glow-active" : ""}`}
+                        width={ringSize}
+                        height={ringSize}
+                        viewBox={`0 0 ${ringSize} ${ringSize}`}
                     >
+                        {/* Subtle tick marks */}
+                        {Array.from({ length: 60 }, (_, i) => {
+                            const angle = (i / 60) * 360;
+                            const rad = (angle * Math.PI) / 180;
+                            const outerR = ringRadius + 18;
+                            const innerR = i % 5 === 0 ? ringRadius + 12 : ringRadius + 15;
+                            const cx = ringSize / 2;
+                            const cy = ringSize / 2;
+                            return (
+                                <line
+                                    key={i}
+                                    x1={cx + Math.cos(rad) * innerR}
+                                    y1={cy + Math.sin(rad) * innerR}
+                                    x2={cx + Math.cos(rad) * outerR}
+                                    y2={cy + Math.sin(rad) * outerR}
+                                    stroke={i % 5 === 0 ? "hsl(40 52% 55% / 0.25)" : "hsl(150 28% 22% / 0.3)"}
+                                    strokeWidth={i % 5 === 0 ? 1.5 : 0.5}
+                                    strokeLinecap="round"
+                                />
+                            );
+                        })}
                         {/* Track */}
                         <circle
-                            cx="110" cy="110" r={ringRadius}
+                            cx={ringSize / 2} cy={ringSize / 2} r={ringRadius}
                             className="progress-ring-track"
-                            strokeWidth="6"
+                            strokeWidth="5"
                         />
                         {/* Fill */}
                         <circle
-                            cx="110" cy="110" r={ringRadius}
+                            cx={ringSize / 2} cy={ringSize / 2} r={ringRadius}
                             className="progress-ring-fill"
                             stroke={remaining <= 0 ? "hsl(40 70% 65%)" : "hsl(40 52% 55%)"}
-                            strokeWidth="7"
+                            strokeWidth="6"
                             strokeDasharray={circumference}
                             strokeDashoffset={strokeDashoffset}
                             style={{
                                 filter: remaining === 0
                                     ? "drop-shadow(0 0 14px hsl(40 52% 55% / 0.8))"
-                                    : "drop-shadow(0 0 5px hsl(40 52% 55% / 0.4))",
+                                    : "drop-shadow(0 0 6px hsl(40 52% 55% / 0.4))",
                             }}
                         />
+                        {/* Glowing dot at progress head */}
+                        {remaining > 0 && progress > 0 && (() => {
+                            const angle = ((progress / 100) * 360 - 90) * (Math.PI / 180);
+                            const dotX = ringSize / 2 + Math.cos(angle) * ringRadius;
+                            const dotY = ringSize / 2 + Math.sin(angle) * ringRadius;
+                            return (
+                                <circle
+                                    cx={dotX} cy={dotY} r="4"
+                                    fill="hsl(40 70% 65%)"
+                                    style={{ filter: "drop-shadow(0 0 6px hsl(40 52% 55% / 0.8))" }}
+                                />
+                            );
+                        })()}
                     </svg>
 
                     {/* Confetti pieces */}
@@ -272,7 +320,7 @@ const Tasbeeh: React.FC = () => {
                                 "--ty": `${piece.ty}px`,
                                 "--rot": `${piece.rot}deg`,
                                 background: piece.color,
-                                boxShadow: `0 0 4px ${piece.color}`,
+                                boxShadow: `0 0 6px ${piece.color}`,
                             } as React.CSSProperties}
                         />
                     ))}
@@ -294,31 +342,46 @@ const Tasbeeh: React.FC = () => {
                         ref={buttonRef}
                         onClick={handleTap}
                         disabled={remaining <= 0}
-                        className="relative w-48 h-48 rounded-full flex items-center justify-center select-none touch-manipulation transition-transform duration-100 active:scale-95"
+                        className="tasbeeh-button relative rounded-full flex items-center justify-center select-none touch-manipulation"
                         style={{
+                            width: "200px",
+                            height: "200px",
                             background: remaining <= 0
-                                ? "radial-gradient(circle at 40% 35%, hsl(40 50% 18%), hsl(150 40% 8%))"
-                                : "radial-gradient(circle at 40% 35%, hsl(150 38% 14%), hsl(150 50% 6%))",
+                                ? "radial-gradient(circle at 40% 35%, hsl(40 45% 20%), hsl(40 30% 12%), hsl(150 40% 8%))"
+                                : "radial-gradient(circle at 40% 35%, hsl(150 35% 16%), hsl(150 40% 10%), hsl(150 50% 6%))",
                             boxShadow: remaining <= 0
-                                ? "0 0 40px hsl(40 52% 55% / 0.5), inset 0 1px 0 hsl(40 52% 70% / 0.2), 0 0 80px hsl(40 52% 55% / 0.15)"
-                                : "0 0 25px hsl(40 52% 55% / 0.15), inset 0 1px 0 hsl(150 40% 30% / 0.15), 0 8px 25px hsl(0 0% 0% / 0.4)",
+                                ? "0 0 50px hsl(40 52% 55% / 0.4), inset 0 2px 0 hsl(40 52% 70% / 0.15), inset 0 -2px 4px hsl(0 0% 0% / 0.3), 0 0 100px hsl(40 52% 55% / 0.1)"
+                                : "0 0 30px hsl(40 52% 55% / 0.1), inset 0 2px 0 hsl(150 40% 30% / 0.2), inset 0 -2px 4px hsl(0 0% 0% / 0.3), 0 10px 30px hsl(0 0% 0% / 0.5)",
+                            border: remaining <= 0
+                                ? "1px solid hsl(40 52% 55% / 0.2)"
+                                : "1px solid hsl(150 30% 22% / 0.5)",
                         }}
                     >
                         {remaining <= 0 ? (
                             <div className="flex flex-col items-center gap-1 check-bounce">
                                 <span className="text-gold text-5xl" style={{
-                                    textShadow: "0 0 20px hsl(40 52% 55% / 0.6)",
+                                    textShadow: "0 0 25px hsl(40 52% 55% / 0.6)",
                                 }}>✓</span>
-                                <span className="text-gold text-base font-arabic font-bold">ما شاء الله</span>
+                                <span className="text-gold text-base font-arabic font-bold" style={{
+                                    textShadow: "0 0 10px hsl(40 52% 55% / 0.3)",
+                                }}>ما شاء الله</span>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center gap-1">
-                                <span className="text-cream text-5xl font-bold font-arabic leading-none"
-                                    style={{ textShadow: "0 2px 8px hsl(0 0% 0% / 0.3)" }}
+                            <div className="flex flex-col items-center gap-0.5">
+                                <span
+                                    key={countKey}
+                                    className="text-cream font-bold font-arabic leading-none count-pop"
+                                    style={{
+                                        fontSize: "3.5rem",
+                                        textShadow: "0 0 20px hsl(40 52% 55% / 0.2), 0 2px 8px hsl(0 0% 0% / 0.4)",
+                                    }}
                                 >
                                     {state.count}
                                 </span>
-                                <span className="text-cream-dim text-sm font-arabic">/ {activePreset.target}</span>
+                                <span className="text-cream-dim/60 text-xs font-arabic">/ {activePreset.target}</span>
+                                {progressPercent > 0 && (
+                                    <span className="text-gold/50 text-[10px] mt-1 font-bold">{progressPercent}%</span>
+                                )}
                             </div>
                         )}
                     </button>
@@ -326,7 +389,7 @@ const Tasbeeh: React.FC = () => {
 
                 {/* Remaining indicator */}
                 {remaining > 0 && (
-                    <p className="text-cream-dim/50 text-xs font-arabic">
+                    <p className="text-cream-dim/40 text-xs font-arabic">
                         باقي {remaining} {remaining === 1 ? "مرة" : "مرات"}
                     </p>
                 )}
@@ -334,7 +397,12 @@ const Tasbeeh: React.FC = () => {
                 {/* Reset button */}
                 <button
                     onClick={handleReset}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-2xl glass-card border border-emerald-border text-cream-dim hover:text-gold hover:border-gold/30 transition-all duration-200"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border transition-all duration-200 hover:scale-105 active:scale-95"
+                    style={{
+                        background: "hsl(150 38% 11% / 0.7)",
+                        borderColor: "hsl(150 28% 22% / 0.5)",
+                        color: "hsl(var(--cream-dim))",
+                    }}
                 >
                     <RotateCcw className="w-4 h-4" />
                     <span className="text-sm font-arabic">إعادة</span>
