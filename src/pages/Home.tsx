@@ -25,45 +25,25 @@ const Home: React.FC = () => {
     );
   });
 
+  // Time-based greeting
+  const hour = new Date().getHours();
+  const isMorning = hour >= 4 && hour < 15;
+  const greeting = isMorning ? "صباح الخير ☀️" : "مساء النور 🌙";
+
   return (
     <div
-      className="fixed inset-0 flex flex-col overflow-hidden"
+      className="flex flex-col h-full overflow-hidden"
       style={{ background: "var(--gradient-hero)", touchAction: "none" }}
       dir="rtl"
     >
-      {/* ── Ambient floating glow ── */}
-      <div
-        className="ambient-glow"
-        style={{
-          top: "-5%",
-          right: "-10%",
-          width: "300px",
-          height: "300px",
-          background: "radial-gradient(circle, hsl(40 52% 55%), transparent 70%)",
-        }}
-      />
-      <div
-        className="ambient-glow"
-        style={{
-          bottom: "20%",
-          left: "-15%",
-          width: "250px",
-          height: "250px",
-          background: "radial-gradient(circle, hsl(150 50% 30%), transparent 70%)",
-          animationDelay: "4s",
-        }}
-      />
-
       {/* ── الترويسة ── */}
-      <header className="flex-none px-5 pt-10 pb-3 page-enter">
+      <header className="flex-none px-5 pt-8 pb-3 page-enter">
         <div className="flex items-center justify-between mb-1">
           <div className="flex-1">
-            <h1 className="text-gold text-3xl font-arabic font-bold leading-snug">
+            <p className="text-cream-dim text-sm font-arabic opacity-60 mb-0.5">{greeting}</p>
+            <h1 className="text-gold text-2xl font-arabic font-bold leading-snug">
               حصن المسلم
             </h1>
-            <p className="text-cream-dim text-sm font-arabic mt-0.5 leading-relaxed opacity-70">
-              أذكار وأدعية من السنة النبوية الشريفة
-            </p>
           </div>
           <button
             onClick={() => setSearchOpen(!searchOpen)}
@@ -256,8 +236,8 @@ const HisnGroupCard: React.FC<HisnGroupCardProps> = ({ group, index, searchQuery
         </div>
         <div
           className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all duration-300 ${expanded
-              ? "bg-gold/15 text-gold rotate-180"
-              : "bg-emerald-surface text-cream-dim"
+            ? "bg-gold/15 text-gold rotate-180"
+            : "bg-emerald-surface text-cream-dim"
             }`}
         >
           <ChevronDown className="w-3.5 h-3.5" />
