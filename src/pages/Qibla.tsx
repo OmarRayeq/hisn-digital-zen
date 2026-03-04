@@ -210,7 +210,8 @@ const Qibla: React.FC = () => {
             }
         }, 3000);
 
-        setStatus("active");
+        // NOTE: setStatus("active") is called BEFORE startCompass() externally
+        // to avoid React cleanup killing listeners
 
         return () => {
             if (noDataTimer) clearTimeout(noDataTimer);
@@ -220,19 +221,24 @@ const Qibla: React.FC = () => {
         };
     }, []);
 
+    // Ref to hold compass cleanup — so React state changes don't kill listeners
+    const compassCleanupRef = useRef<(() => void) | null>(null);
+
     // Request compass permission (iOS 13+ requires explicit permission)
     const requestCompass = useCallback(async () => {
         try {
             if (typeof (DeviceOrientationEvent as any).requestPermission === "function") {
                 const perm = await (DeviceOrientationEvent as any).requestPermission();
                 if (perm === "granted") {
-                    startCompass();
+                    setStatus("active");
+                    compassCleanupRef.current = startCompass();
                 } else {
                     setError("يجب السماح بالوصول إلى البوصلة لتحديد اتجاه القبلة");
                     setStatus("error");
                 }
             } else {
-                startCompass();
+                setStatus("active");
+                compassCleanupRef.current = startCompass();
             }
         } catch {
             setError("تعذر تشغيل البوصلة. تأكد من فتح الموقع عبر HTTPS");
@@ -244,14 +250,16 @@ const Qibla: React.FC = () => {
     useEffect(() => {
         if (status !== "requesting-compass") return;
         if (typeof (DeviceOrientationEvent as any).requestPermission !== "function") {
-            const cleanup = startCompass();
-            return cleanup;
+            setStatus("active");
+            compassCleanupRef.current = startCompass();
         }
+        // No return cleanup here — we manage it via ref
     }, [status, startCompass]);
 
-    // Cleanup on unmount
+    // Cleanup on unmount only
     useEffect(() => {
         return () => {
+            if (compassCleanupRef.current) compassCleanupRef.current();
             if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
         };
     }, []);
