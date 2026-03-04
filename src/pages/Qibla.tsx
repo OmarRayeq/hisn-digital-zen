@@ -102,6 +102,8 @@ const Qibla: React.FC = () => {
         let gotData = false;
         let noDataTimer: ReturnType<typeof setTimeout> | null = null;
 
+        let useAbsolute = false;
+
         const handler = (event: any) => {
             gotData = true;
             let heading: number | null = null;
@@ -110,9 +112,9 @@ const Qibla: React.FC = () => {
             if (event.webkitCompassHeading != null) {
                 heading = event.webkitCompassHeading;
             }
-            // Android: use alpha (360 - alpha = clockwise from reference)
+            // Android: alpha gives device rotation from reference
             else if (event.alpha != null) {
-                heading = (360 - event.alpha) % 360;
+                heading = event.alpha;
             }
 
             if (heading !== null) {
@@ -120,19 +122,25 @@ const Qibla: React.FC = () => {
             }
         };
 
-        // Try absolute first (Android Chrome) then regular as fallback
-        const onAbsolute = (e: any) => handler(e);
-        const onRegular = (e: any) => handler(e);
+        // Priority: absolute events take over, regular ignored after
+        const onAbsolute = (e: any) => {
+            useAbsolute = true;
+            handler(e);
+        };
+        const onRegular = (e: any) => {
+            if (useAbsolute) return;
+            handler(e);
+        };
 
         window.addEventListener("deviceorientationabsolute", onAbsolute);
         window.addEventListener("deviceorientation", onRegular);
 
-        // Smooth animation loop — factor 0.08 for very smooth movement
+        // Smooth animation loop — 0.05 = very silky smooth
         const animate = () => {
             smoothHeadingRef.current = smoothAngle(
                 smoothHeadingRef.current,
                 headingRef.current,
-                0.08
+                0.05
             );
             setCompassHeading(smoothHeadingRef.current);
             animFrameRef.current = requestAnimationFrame(animate);
