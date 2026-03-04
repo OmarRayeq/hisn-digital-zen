@@ -1,9 +1,9 @@
 // ============================================================
-// القرآن الكريم — Quran Reader (Mushaf Page Images)
+// القرآن الكريم — Quran Reader (Ayah-style Mushaf)
 // ============================================================
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronRight, ChevronLeft, BookOpen, X, Loader2 } from "lucide-react";
+import { BookOpen, X, Loader2 } from "lucide-react";
 
 /* ── CDN for Mushaf page images ── */
 const IMG_BASE = "https://cdn.jsdelivr.net/gh/GovarJabbar/Quran-PNG@master/";
@@ -80,7 +80,6 @@ const JUZ_PAGES = [
     402, 422, 442, 462, 482, 502, 522, 542, 562, 582,
 ];
 
-/* ── Helpers ── */
 function getSurahForPage(page: number): string {
     for (let i = SURAHS.length - 1; i >= 0; i--) {
         if (page >= SURAHS[i].startPage) return SURAHS[i].name;
@@ -111,10 +110,8 @@ const QuranReader: React.FC = () => {
     const [showIndex, setShowIndex] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
-    const touchStartRef = useRef<number>(0);
-    const touchStartYRef = useRef<number>(0);
+    const touchStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-    // Save position
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, currentPage.toString());
     }, [currentPage]);
@@ -129,7 +126,6 @@ const QuranReader: React.FC = () => {
         });
     }, [currentPage]);
 
-    // Navigation
     const goNext = useCallback(() => {
         setCurrentPage((p) => Math.min(p + 1, TOTAL_PAGES));
         setLoading(true);
@@ -146,19 +142,27 @@ const QuranReader: React.FC = () => {
         setLoading(true);
     }, []);
 
-    // Touch swipe — RTL: swipe right = next, swipe left = prev
+    // Touch swipe — RTL
     const handleTouchStart = (e: React.TouchEvent) => {
-        touchStartRef.current = e.touches[0].clientX;
-        touchStartYRef.current = e.touches[0].clientY;
+        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     };
 
     const handleTouchEnd = (e: React.TouchEvent) => {
-        const dx = e.changedTouches[0].clientX - touchStartRef.current;
-        const dy = e.changedTouches[0].clientY - touchStartYRef.current;
+        const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+        const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
             if (dx > 0) goNext();
             else goPrev();
         }
+    };
+
+    // Tap zones — left 30% = prev, right 30% = next, center = toggle index
+    const handleTap = (e: React.MouseEvent) => {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const pct = x / rect.width;
+        if (pct < 0.3) goPrev();
+        else if (pct > 0.7) goNext();
     };
 
     const surahName = getSurahForPage(currentPage);
@@ -172,24 +176,26 @@ const QuranReader: React.FC = () => {
 
     return (
         <div className="quran-page" dir="rtl">
-            {/* Header */}
+            {/* Header — minimal like Ayah */}
             <header className="quran-header">
                 <span className="quran-header-text">{surahName}</span>
-                <button className="quran-index-btn" onClick={() => setShowIndex(true)}>
+                <button className="quran-index-btn" onClick={() => setShowIndex(true)}
+                    aria-label="فهرس السور">
                     <BookOpen className="w-4 h-4" />
                 </button>
                 <span className="quran-header-text">الجزء {toArabicNum(juzNumber)}</span>
             </header>
 
-            {/* Mushaf Page Image */}
+            {/* Mushaf Page — dark mode with inverted image */}
             <main
                 className="quran-content"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
+                onClick={handleTap}
             >
                 {loading && (
                     <div className="quran-loading">
-                        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(40 52% 55%)" }} />
+                        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(0 0% 40%)" }} />
                     </div>
                 )}
                 <img
@@ -197,25 +203,21 @@ const QuranReader: React.FC = () => {
                     src={pageUrl(currentPage)}
                     alt={`صفحة ${toArabicNum(currentPage)}`}
                     className="quran-mushaf-img"
-                    style={{ display: loading ? "none" : "block" }}
+                    style={{ opacity: loading ? 0 : 1 }}
                     onLoad={() => setLoading(false)}
                     onError={() => setLoading(false)}
                     draggable={false}
                 />
             </main>
 
-            {/* Footer with page nav */}
+            {/* Page number — decorative like Ayah */}
             <footer className="quran-footer">
-                <button className="quran-nav-arrow" onClick={goNext} disabled={currentPage >= TOTAL_PAGES}>
-                    <ChevronRight className="w-5 h-5" />
-                </button>
-                <span className="quran-page-num">{toArabicNum(currentPage)}</span>
-                <button className="quran-nav-arrow" onClick={goPrev} disabled={currentPage <= 1}>
-                    <ChevronLeft className="w-5 h-5" />
-                </button>
+                <div className="quran-page-badge">
+                    <span>{toArabicNum(currentPage)}</span>
+                </div>
             </footer>
 
-            {/* Surah Index Modal */}
+            {/* Surah Index */}
             {showIndex && (
                 <div className="quran-index-overlay" onClick={() => setShowIndex(false)}>
                     <div className="quran-index-modal" onClick={(e) => e.stopPropagation()}>
@@ -248,7 +250,7 @@ const QuranReader: React.FC = () => {
                                     >
                                         <span className="quran-index-num">{toArabicNum(realIdx + 1)}</span>
                                         <span className="quran-index-name">{surah.name}</span>
-                                        <span className="quran-index-page">{toArabicNum(surah.startPage)}</span>
+                                        <span className="quran-index-page">ص {toArabicNum(surah.startPage)}</span>
                                     </button>
                                 );
                             })}
