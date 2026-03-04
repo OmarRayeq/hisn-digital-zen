@@ -6,6 +6,7 @@ import { HashRouter, Routes, Route, Navigate, useLocation } from "react-router-d
 import Home from "./pages/Home";
 import Tasbeeh from "./pages/Tasbeeh";
 import Qibla from "./pages/Qibla";
+import QuranReader from "./pages/QuranReader";
 import Saved from "./pages/Saved";
 import AdhkarReader from "./pages/AdhkarReader";
 import HisnReader from "./pages/HisnReader";
@@ -15,7 +16,7 @@ import BottomNav from "./components/BottomNav";
 const queryClient = new QueryClient();
 
 // Main pages that show the bottom nav
-const MAIN_PATHS = ["/", "/tasbeeh", "/qibla", "/saved"];
+const MAIN_PATHS = ["/", "/tasbeeh", "/qibla", "/quran", "/saved"];
 
 const AppContent = () => {
   const location = useLocation();
@@ -28,6 +29,7 @@ const AppContent = () => {
           <Route path="/" element={<Home />} />
           <Route path="/tasbeeh" element={<Tasbeeh />} />
           <Route path="/qibla" element={<Qibla />} />
+          <Route path="/quran" element={<QuranReader />} />
           <Route path="/saved" element={<Saved />} />
           <Route path="/adhkar/:categoryId" element={<AdhkarReader />} />
           <Route path="/hisn/:categoryId" element={<HisnReader />} />
