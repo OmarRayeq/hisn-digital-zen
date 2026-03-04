@@ -853,6 +853,215 @@
   animation: check-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* ==============================================
+   QIBLA COMPASS PAGE
+   ============================================== */
+
+.qibla-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(170deg, hsl(150 50% 7%) 0%, hsl(155 55% 4%) 50%, hsl(160 40% 6%) 100%);
+}
+
+.qibla-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.qibla-bg-glow {
+  position: absolute;
+  width: 350px;
+  height: 350px;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(40 45% 50% / 0.2) 0%, transparent 70%);
+  filter: blur(50px);
+}
+
+.qibla-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2.2rem 1.5rem 0.75rem;
+  position: relative;
+  z-index: 10;
+}
+
+.qibla-title {
+  font-family: 'Amiri', 'Noto Naskh Arabic', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(40 52% 55%);
+  text-shadow: 0 0 15px hsl(40 52% 55% / 0.2);
+}
+
+.qibla-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: 0.7rem;
+  color: hsl(var(--cream-dim));
+  opacity: 0.5;
+}
+
+.qibla-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0 1.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Status states ── */
+.qibla-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.qibla-status-text {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: 1rem;
+  color: hsl(var(--cream));
+}
+
+.qibla-status-sub {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: 0.75rem;
+  color: hsl(var(--cream-dim));
+  opacity: 0.5;
+}
+
+.qibla-permission-btn {
+  padding: 12px 32px;
+  border-radius: 100px;
+  border: 1px solid hsl(40 52% 55% / 0.4);
+  background: hsl(40 52% 55% / 0.1);
+  color: hsl(40 52% 55%);
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qibla-permission-btn:active {
+  transform: scale(0.95);
+  background: hsl(40 52% 55% / 0.15);
+}
+
+.qibla-retry-btn {
+  padding: 8px 24px;
+  border-radius: 100px;
+  border: 1px solid hsl(150 25% 18% / 0.5);
+  background: hsl(150 35% 10% / 0.6);
+  color: hsl(var(--cream-dim));
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Compass ── */
+.qibla-compass-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qibla-compass {
+  filter: drop-shadow(0 4px 20px hsl(0 0% 0% / 0.3));
+}
+
+@keyframes aligned-pulse {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+.qibla-aligned-glow {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(40 52% 55% / 0.2) 0%, transparent 60%);
+  filter: blur(20px);
+  animation: aligned-pulse 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Bearing info ── */
+.qibla-bearing-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.qibla-bearing-value {
+  font-family: 'Amiri', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: hsl(var(--cream));
+  line-height: 1;
+  text-shadow: 0 0 12px hsl(40 52% 55% / 0.15);
+}
+
+.qibla-bearing-label {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: 0.7rem;
+  color: hsl(var(--cream-dim));
+  opacity: 0.5;
+}
+
+.qibla-distance {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: 0.8rem;
+  color: hsl(var(--cream-dim));
+  opacity: 0.6;
+}
+
+.qibla-aligned-badge {
+  padding: 6px 20px;
+  border-radius: 100px;
+  background: hsl(40 52% 55% / 0.12);
+  border: 1px solid hsl(40 52% 55% / 0.3);
+  color: hsl(40 52% 55%);
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-shadow: 0 0 8px hsl(40 52% 55% / 0.2);
+  animation: text-fade-in 0.3s ease-out;
+}
+
 /* ── Root Layout ── */
 #root {
   width: 100%;

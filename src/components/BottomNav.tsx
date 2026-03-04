@@ -4,7 +4,7 @@
 
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Star } from "lucide-react";
+import { Home, Star, Compass } from "lucide-react";
 
 interface NavItem {
     id: string;
@@ -38,6 +38,7 @@ const TasbeehIcon: React.FC<{ className?: string }> = ({ className }) => (
 const NAV_ITEMS: NavItem[] = [
     { id: "home", label: "الرئيسية", icon: <Home className="w-5 h-5" />, path: "/" },
     { id: "tasbeeh", label: "المسبحة", icon: <TasbeehIcon className="w-5 h-5" />, path: "/tasbeeh" },
+    { id: "qibla", label: "القبلة", icon: <Compass className="w-5 h-5" />, path: "/qibla" },
     { id: "saved", label: "المحفوظات", icon: <Star className="w-5 h-5" />, path: "/saved" },
 ];
 
@@ -48,6 +49,7 @@ const BottomNav: React.FC = () => {
     const activeId = (() => {
         const path = location.pathname;
         if (path.startsWith("/tasbeeh")) return "tasbeeh";
+        if (path.startsWith("/qibla")) return "qibla";
         if (path.startsWith("/saved")) return "saved";
         return "home";
     })();
