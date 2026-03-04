@@ -20,7 +20,7 @@
   <script>
     // One-time service worker nuke — forces fresh install
     (function () {
-      var KEY = 'sw-nuked-v11';
+      var KEY = 'sw-nuked-v12';
       if (!localStorage.getItem(KEY) && 'serviceWorker' in navigator) {
         localStorage.setItem(KEY, '1');
         navigator.serviceWorker.getRegistrations().then(function (regs) {

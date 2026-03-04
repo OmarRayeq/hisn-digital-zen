@@ -1,5 +1,5 @@
 // ============================================================
-// القرآن الكريم — Quran Reader (Ayah-style Mushaf)
+// القرآن الكريم — Full-screen Mushaf Reader (Ayah-style)
 // ============================================================
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -73,19 +73,18 @@ const SURAHS: { name: string; startPage: number }[] = [
     { name: "الفلق", startPage: 604 }, { name: "الناس", startPage: 604 },
 ];
 
-/* ── Juz start pages ── */
-const JUZ_PAGES = [
-    1, 22, 42, 62, 82, 102, 121, 142, 162, 182,
-    201, 222, 242, 262, 282, 302, 322, 342, 362, 382,
-    402, 422, 442, 462, 482, 502, 522, 542, 562, 582,
-];
-
 function getSurahForPage(page: number): string {
     for (let i = SURAHS.length - 1; i >= 0; i--) {
         if (page >= SURAHS[i].startPage) return SURAHS[i].name;
     }
     return SURAHS[0].name;
 }
+
+const JUZ_PAGES = [
+    1, 22, 42, 62, 82, 102, 121, 142, 162, 182,
+    201, 222, 242, 262, 282, 302, 322, 342, 362, 382,
+    402, 422, 442, 462, 482, 502, 522, 542, 562, 582,
+];
 
 function getJuzForPage(page: number): number {
     for (let i = JUZ_PAGES.length - 1; i >= 0; i--) {
@@ -108,9 +107,11 @@ const QuranReader: React.FC = () => {
     });
     const [loading, setLoading] = useState(true);
     const [showIndex, setShowIndex] = useState(false);
+    const [showControls, setShowControls] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
-    const touchStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+    const touchStartRef = useRef<{ x: number; y: number; t: number }>({ x: 0, y: 0, t: 0 });
+    const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, currentPage.toString());
@@ -125,6 +126,14 @@ const QuranReader: React.FC = () => {
             }
         });
     }, [currentPage]);
+
+    // Auto-hide controls after 3 seconds
+    useEffect(() => {
+        if (showControls) {
+            controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
+            return () => clearTimeout(controlsTimerRef.current);
+        }
+    }, [showControls]);
 
     const goNext = useCallback(() => {
         setCurrentPage((p) => Math.min(p + 1, TOTAL_PAGES));
@@ -142,27 +151,31 @@ const QuranReader: React.FC = () => {
         setLoading(true);
     }, []);
 
-    // Touch swipe — RTL
+    // Touch swipe — RTL: swipe right = next page (prev in reading), swipe left = prev page
     const handleTouchStart = (e: React.TouchEvent) => {
-        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        touchStartRef.current = {
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY,
+            t: Date.now(),
+        };
     };
 
     const handleTouchEnd = (e: React.TouchEvent) => {
         const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
         const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-            if (dx > 0) goNext();
-            else goPrev();
-        }
-    };
+        const dt = Date.now() - touchStartRef.current.t;
 
-    // Tap zones — left 30% = prev, right 30% = next, center = toggle index
-    const handleTap = (e: React.MouseEvent) => {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const pct = x / rect.width;
-        if (pct < 0.3) goPrev();
-        else if (pct > 0.7) goNext();
+        // Swipe detection
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+            if (dx > 0) goNext(); // swipe right = next page (RTL)
+            else goPrev();        // swipe left = prev page (RTL)
+            return;
+        }
+
+        // Tap detection (short press, minimal movement)
+        if (dt < 300 && Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+            setShowControls((v) => !v);
+        }
     };
 
     const surahName = getSurahForPage(currentPage);
@@ -176,22 +189,11 @@ const QuranReader: React.FC = () => {
 
     return (
         <div className="quran-page" dir="rtl">
-            {/* Header — minimal like Ayah */}
-            <header className="quran-header">
-                <span className="quran-header-text">{surahName}</span>
-                <button className="quran-index-btn" onClick={() => setShowIndex(true)}
-                    aria-label="فهرس السور">
-                    <BookOpen className="w-4 h-4" />
-                </button>
-                <span className="quran-header-text">الجزء {toArabicNum(juzNumber)}</span>
-            </header>
-
-            {/* Mushaf Page — dark mode with inverted image */}
-            <main
-                className="quran-content"
+            {/* Full-screen Mushaf image */}
+            <div
+                className="quran-fullscreen"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
-                onClick={handleTap}
             >
                 {loading && (
                     <div className="quran-loading">
@@ -208,14 +210,23 @@ const QuranReader: React.FC = () => {
                     onError={() => setLoading(false)}
                     draggable={false}
                 />
-            </main>
 
-            {/* Page number — decorative like Ayah */}
-            <footer className="quran-footer">
-                <div className="quran-page-badge">
-                    <span>{toArabicNum(currentPage)}</span>
+                {/* Floating page number badge — always visible */}
+                <div className="quran-page-badge-wrap">
+                    <div className="quran-page-badge">
+                        <span>{toArabicNum(currentPage)}</span>
+                    </div>
                 </div>
-            </footer>
+
+                {/* Top overlay — appears on tap */}
+                <div className={`quran-overlay-top ${showControls ? "visible" : ""}`}>
+                    <span className="quran-overlay-text">{surahName}</span>
+                    <button className="quran-overlay-index-btn" onClick={(e) => { e.stopPropagation(); setShowIndex(true); setShowControls(false); }}>
+                        <BookOpen className="w-4 h-4" />
+                    </button>
+                    <span className="quran-overlay-text">الجزء {toArabicNum(juzNumber)}</span>
+                </div>
+            </div>
 
             {/* Surah Index */}
             {showIndex && (
