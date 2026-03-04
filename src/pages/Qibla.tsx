@@ -259,7 +259,7 @@ const Qibla: React.FC = () => {
 
             {/* Header */}
             <header className="qibla-header">
-                <h1 className="qibla-title">بوصلة القبلة 🧭 v5</h1>
+                <h1 className="qibla-title">القبلة</h1>
                 {geo && (
                     <div className="qibla-info">
                         <MapPin className="w-3 h-3" />
