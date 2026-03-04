@@ -75,10 +75,12 @@ const Qibla: React.FC = () => {
     const [qiblaBearing, setQiblaBearing] = useState<number>(0);
     const [compassHeading, setCompassHeading] = useState<number>(0);
     const [distance, setDistance] = useState<number>(0);
+    const [debugInfo, setDebugInfo] = useState<string>("");
 
     const smoothHeadingRef = useRef(0);
     const animFrameRef = useRef<number>(0);
     const headingRef = useRef(0);
+    const debugRef = useRef("");
 
     // ── Step 1: Get GPS location ──
     useEffect(() => {
@@ -127,48 +129,47 @@ const Qibla: React.FC = () => {
 
     // ── Step 2: Start compass ──
     const startCompass = useCallback(() => {
-        let gotAbsolute = false;
-        let gotAnyData = false;
+        let eventCount = 0;
+        let lastSource = "none";
         let noDataTimer: ReturnType<typeof setTimeout> | null = null;
+        let gotData = false;
 
-        // Single handler for ALL orientation events
-        const handleOrientation = (event: any) => {
-            // iOS: webkitCompassHeading gives true north heading directly
-            if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
-                gotAnyData = true;
-                headingRef.current = event.webkitCompassHeading;
-                return;
+        const handler = (event: any, source: string) => {
+            eventCount++;
+            gotData = true;
+            lastSource = source;
+
+            let heading: number | null = null;
+
+            // iOS: direct compass heading
+            if (event.webkitCompassHeading != null) {
+                heading = event.webkitCompassHeading;
+            }
+            // Android/other: compute from alpha
+            else if (event.alpha != null) {
+                heading = (360 - event.alpha) % 360;
             }
 
-            if (event.alpha === null || event.alpha === undefined) return;
-            gotAnyData = true;
+            if (heading !== null) {
+                // Screen orientation correction
+                const screenAngle = window.screen?.orientation?.angle || 0;
+                heading = (heading + screenAngle) % 360;
+                headingRef.current = heading;
+            }
 
-            // On Android, alpha is counterclockwise from north when using absolute
-            // heading (clockwise from north) = (360 - alpha) mod 360
-            let heading = (360 - event.alpha) % 360;
-
-            // Correct for screen orientation
-            const screenAngle = window.screen?.orientation?.angle || 0;
-            heading = (heading + screenAngle) % 360;
-
-            headingRef.current = heading;
+            // Update debug info every 10th event
+            if (eventCount % 10 === 1) {
+                debugRef.current = `src:${source} α:${event.alpha?.toFixed(1)} abs:${event.absolute} h:${heading?.toFixed(1)} #${eventCount}`;
+                setDebugInfo(debugRef.current);
+            }
         };
 
-        // Handler specifically for absolute events (higher priority)
-        const handleAbsolute = (event: any) => {
-            gotAbsolute = true;
-            handleOrientation(event);
-        };
+        const onAbsolute = (e: any) => handler(e, "ABS");
+        const onRegular = (e: any) => handler(e, "REG");
 
-        // Handler for regular events (only used if absolute isn't available)
-        const handleRegular = (event: any) => {
-            if (gotAbsolute) return; // absolute is working, skip
-            handleOrientation(event);
-        };
-
-        // Register both immediately — absolute takes priority via the flag
-        window.addEventListener("deviceorientationabsolute", handleAbsolute, true);
-        window.addEventListener("deviceorientation", handleRegular, true);
+        // Register both — no capture phase, simpler
+        window.addEventListener("deviceorientationabsolute", onAbsolute);
+        window.addEventListener("deviceorientation", onRegular);
 
         // Smooth animation loop
         const animate = () => {
@@ -178,10 +179,10 @@ const Qibla: React.FC = () => {
         };
         animFrameRef.current = requestAnimationFrame(animate);
 
-        // After 3 seconds, if no compass data at all, show error
+        // No data timeout
         noDataTimer = setTimeout(() => {
-            if (!gotAnyData) {
-                setError("لم يتم الكشف عن مستشعر البوصلة. تأكد من أن جهازك يدعم البوصلة");
+            if (!gotData) {
+                setError("لم يتم الكشف عن مستشعر البوصلة");
                 setStatus("error");
             }
         }, 3000);
@@ -190,8 +191,8 @@ const Qibla: React.FC = () => {
 
         return () => {
             if (noDataTimer) clearTimeout(noDataTimer);
-            window.removeEventListener("deviceorientationabsolute", handleAbsolute, true);
-            window.removeEventListener("deviceorientation", handleRegular, true);
+            window.removeEventListener("deviceorientationabsolute", onAbsolute);
+            window.removeEventListener("deviceorientation", onRegular);
             if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
         };
     }, []);
@@ -437,6 +438,22 @@ const Qibla: React.FC = () => {
                             <div className="qibla-aligned-badge">
                                 ✓ أنت تواجه القبلة
                             </div>
+                        )}
+
+                        {/* Debug info */}
+                        {debugInfo && (
+                            <p style={{
+                                fontSize: "0.55rem",
+                                color: "hsl(40 52% 55% / 0.6)",
+                                fontFamily: "monospace",
+                                direction: "ltr",
+                                textAlign: "center",
+                                marginTop: "0.5rem",
+                                lineHeight: 1.4,
+                            }}>
+                                {debugInfo}<br />
+                                heading: {compassHeading.toFixed(1)}°
+                            </p>
                         )}
                     </>
                 )}
