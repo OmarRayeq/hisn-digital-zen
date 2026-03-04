@@ -127,33 +127,53 @@ const Qibla: React.FC = () => {
 
     // ── Step 2: Start compass ──
     const startCompass = useCallback(() => {
-        const handleOrientation = (event: DeviceOrientationEvent) => {
-            let heading: number;
+        let gotAbsolute = false;
+        let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+        let activeListener: string | null = null;
 
-            // iOS gives us webkitCompassHeading (true north)
-            if ((event as any).webkitCompassHeading !== undefined) {
-                heading = (event as any).webkitCompassHeading as number;
-            }
-            // Android/other: use alpha
-            else if (event.alpha !== null) {
-                heading = event.absolute ? (360 - event.alpha) : (360 - event.alpha);
-                // Correct for screen orientation
-                const screenOrientation = window.screen?.orientation?.angle || 0;
-                heading = (heading + screenOrientation) % 360;
-            }
-            else {
-                return;
-            }
-
+        const handleAbsolute = (event: DeviceOrientationEvent) => {
+            if (event.alpha === null) return;
+            gotAbsolute = true;
+            // deviceorientationabsolute: alpha is relative to true north
+            // heading = 360 - alpha gives degrees clockwise from north
+            let heading = (360 - event.alpha) % 360;
+            // Correct for screen orientation (landscape etc.)
+            const screenAngle = window.screen?.orientation?.angle || 0;
+            heading = (heading + screenAngle) % 360;
             headingRef.current = heading;
         };
 
-        window.addEventListener("deviceorientationabsolute", handleOrientation, true);
-        window.addEventListener("deviceorientation", handleOrientation, true);
+        const handleFallback = (event: DeviceOrientationEvent) => {
+            if (gotAbsolute) return; // absolute is working, ignore fallback
+            // iOS: webkitCompassHeading is the true north heading directly
+            if ((event as any).webkitCompassHeading !== undefined) {
+                headingRef.current = (event as any).webkitCompassHeading as number;
+                return;
+            }
+            // Android fallback: alpha may or may not be absolute
+            if (event.alpha !== null) {
+                let heading = (360 - event.alpha) % 360;
+                const screenAngle = window.screen?.orientation?.angle || 0;
+                heading = (heading + screenAngle) % 360;
+                headingRef.current = heading;
+            }
+        };
+
+        // 1) Try absolute orientation first (best for Android Chrome)
+        window.addEventListener("deviceorientationabsolute", handleAbsolute as any, true);
+        activeListener = "absolute";
+
+        // 2) After 1 second, if absolute didn't fire, add regular fallback
+        fallbackTimer = setTimeout(() => {
+            if (!gotAbsolute) {
+                window.addEventListener("deviceorientation", handleFallback, true);
+                activeListener = "both";
+            }
+        }, 1000);
 
         // Smooth animation loop
         const animate = () => {
-            smoothHeadingRef.current = smoothAngle(smoothHeadingRef.current, headingRef.current, 0.15);
+            smoothHeadingRef.current = smoothAngle(smoothHeadingRef.current, headingRef.current, 0.2);
             setCompassHeading(smoothHeadingRef.current);
             animFrameRef.current = requestAnimationFrame(animate);
         };
@@ -162,8 +182,9 @@ const Qibla: React.FC = () => {
         setStatus("active");
 
         return () => {
-            window.removeEventListener("deviceorientationabsolute", handleOrientation, true);
-            window.removeEventListener("deviceorientation", handleOrientation, true);
+            if (fallbackTimer) clearTimeout(fallbackTimer);
+            window.removeEventListener("deviceorientationabsolute", handleAbsolute as any, true);
+            window.removeEventListener("deviceorientation", handleFallback, true);
             if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
         };
     }, []);
