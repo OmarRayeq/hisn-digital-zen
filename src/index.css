@@ -1062,6 +1062,49 @@
   animation: text-fade-in 0.3s ease-out;
 }
 
+/* Calibration overlay */
+.qibla-calibration {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(150 50% 4% / 0.88);
+  backdrop-filter: blur(6px);
+  animation: text-fade-in 0.3s ease-out;
+  cursor: pointer;
+}
+
+.qibla-cal-content {
+  text-align: center;
+  padding: 1.5rem;
+  max-width: 280px;
+}
+
+.qibla-cal-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: hsl(40 52% 55%);
+  margin-bottom: 1rem;
+  font-family: 'Noto Naskh Arabic', serif;
+}
+
+.qibla-cal-text {
+  font-size: 0.9rem;
+  color: hsl(var(--cream));
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+  font-family: 'Noto Naskh Arabic', serif;
+}
+
+.qibla-cal-sub {
+  font-size: 0.7rem;
+  color: hsl(var(--cream-dim));
+  margin-top: 1.2rem;
+  opacity: 0.5;
+}
+
 /* ── Root Layout ── */
 #root {
   width: 100%;

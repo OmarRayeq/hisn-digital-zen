@@ -4,14 +4,14 @@
 // ============================================================
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { MapPin, AlertCircle, Loader2 } from "lucide-react";
+import { MapPin, AlertCircle, Loader2, RotateCcw } from "lucide-react";
 
 /* ── Kaaba precise coordinates ── */
 const KAABA_LAT = 21.422487;
 const KAABA_LNG = 39.826206;
 
 /* ── Types ── */
-type CompassStatus = "loading" | "requesting-compass" | "active" | "error";
+type CompassStatus = "loading" | "requesting-compass" | "calibrating" | "active" | "error";
 
 interface GeoData {
     lat: number;
@@ -50,6 +50,28 @@ function smoothAngle(prev: number, next: number, factor: number): number {
     return (prev + diff * factor + 360) % 360;
 }
 
+/**
+ * Compute compass heading from alpha, beta, gamma using rotation matrix.
+ * This handles the phone in any orientation correctly.
+ */
+function computeCompassHeading(alpha: number, beta: number, gamma: number): number {
+    const aR = toRad(alpha);
+    const bR = toRad(beta);
+    const gR = toRad(gamma);
+
+    const cA = Math.cos(aR), sA = Math.sin(aR);
+    const cB = Math.cos(bR), sB = Math.sin(bR);
+    const cG = Math.cos(gR), sG = Math.sin(gR);
+
+    // Rotation matrix element for computing heading
+    const rA = -cA * sG - sA * sB * cG;
+    const rB = -sA * sG + cA * sB * cG;
+
+    let heading = Math.atan2(rA, rB) * (180 / Math.PI);
+    if (heading < 0) heading += 360;
+    return heading;
+}
+
 /* ── Component ── */
 const Qibla: React.FC = () => {
     const [status, setStatus] = useState<CompassStatus>("loading");
@@ -58,6 +80,7 @@ const Qibla: React.FC = () => {
     const [qiblaBearing, setQiblaBearing] = useState<number>(0);
     const [compassHeading, setCompassHeading] = useState<number>(0);
     const [distance, setDistance] = useState<number>(0);
+    const [showCalibration, setShowCalibration] = useState(false);
 
     const smoothHeadingRef = useRef(0);
     const animFrameRef = useRef<number>(0);
@@ -100,11 +123,10 @@ const Qibla: React.FC = () => {
     // ── Step 2: Start compass ──
     const startCompass = useCallback(() => {
         let gotData = false;
+        let useAbsolute = false;
         let noDataTimer: ReturnType<typeof setTimeout> | null = null;
 
-        let useAbsolute = false;
-
-        const handler = (event: any) => {
+        const handler = (event: any, isAbsolute: boolean) => {
             gotData = true;
             let heading: number | null = null;
 
@@ -112,9 +134,18 @@ const Qibla: React.FC = () => {
             if (event.webkitCompassHeading != null) {
                 heading = event.webkitCompassHeading;
             }
-            // Android: alpha gives device rotation from reference
+            // Absolute events or calibrated: use rotation matrix for accuracy
+            else if (event.alpha != null && event.beta != null && event.gamma != null) {
+                if (isAbsolute) {
+                    // For absolute events, 360-alpha gives CW heading from north
+                    heading = (360 - event.alpha) % 360;
+                } else {
+                    // For relative events, rotation matrix handles tilt better
+                    heading = computeCompassHeading(event.alpha, event.beta, event.gamma);
+                }
+            }
             else if (event.alpha != null) {
-                heading = event.alpha;
+                heading = (360 - event.alpha) % 360;
             }
 
             if (heading !== null) {
@@ -122,35 +153,35 @@ const Qibla: React.FC = () => {
             }
         };
 
-        // Priority: absolute events take over, regular ignored after
+        // Priority system: absolute > regular
         const onAbsolute = (e: any) => {
             useAbsolute = true;
-            handler(e);
+            handler(e, true);
         };
         const onRegular = (e: any) => {
             if (useAbsolute) return;
-            handler(e);
+            handler(e, false);
         };
 
         window.addEventListener("deviceorientationabsolute", onAbsolute);
         window.addEventListener("deviceorientation", onRegular);
 
-        // Smooth animation loop — 0.05 = very silky smooth
+        // Smooth animation loop
         const animate = () => {
             smoothHeadingRef.current = smoothAngle(
                 smoothHeadingRef.current,
                 headingRef.current,
-                0.05
+                0.06
             );
             setCompassHeading(smoothHeadingRef.current);
             animFrameRef.current = requestAnimationFrame(animate);
         };
         animFrameRef.current = requestAnimationFrame(animate);
 
-        // No data after 4 seconds = error
+        // No data timeout
         noDataTimer = setTimeout(() => {
             if (!gotData) {
-                setError("لم يتم الكشف عن مستشعر البوصلة");
+                setError("لم يتم الكشف عن مستشعر البوصلة.\nتأكد من أن جهازك يحتوي على مستشعر بوصلة.");
                 setStatus("error");
             }
         }, 4000);
@@ -170,6 +201,7 @@ const Qibla: React.FC = () => {
                 const perm = await (DeviceOrientationEvent as any).requestPermission();
                 if (perm === "granted") {
                     setStatus("active");
+                    setShowCalibration(true);
                     compassCleanupRef.current = startCompass();
                 } else {
                     setError("يجب السماح بالوصول إلى البوصلة");
@@ -177,6 +209,7 @@ const Qibla: React.FC = () => {
                 }
             } else {
                 setStatus("active");
+                setShowCalibration(true);
                 compassCleanupRef.current = startCompass();
             }
         } catch {
@@ -185,16 +218,24 @@ const Qibla: React.FC = () => {
         }
     }, [startCompass]);
 
-    // Auto-start on Android, wait for tap on iOS
+    // Auto-start on Android
     useEffect(() => {
         if (status !== "requesting-compass") return;
         if (typeof (DeviceOrientationEvent as any).requestPermission !== "function") {
             setStatus("active");
+            setShowCalibration(true);
             compassCleanupRef.current = startCompass();
         }
     }, [status, startCompass]);
 
-    // Cleanup on unmount only
+    // Auto-hide calibration after 6 seconds
+    useEffect(() => {
+        if (!showCalibration) return;
+        const timer = setTimeout(() => setShowCalibration(false), 6000);
+        return () => clearTimeout(timer);
+    }, [showCalibration]);
+
+    // Cleanup on unmount
     useEffect(() => {
         return () => {
             if (compassCleanupRef.current) compassCleanupRef.current();
@@ -223,13 +264,42 @@ const Qibla: React.FC = () => {
             {/* Header */}
             <header className="qibla-header">
                 <h1 className="qibla-title">القبلة</h1>
-                {geo && (
-                    <div className="qibla-info">
-                        <MapPin className="w-3 h-3" />
-                        <span>±{Math.round(geo.accuracy)}م</span>
-                    </div>
-                )}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    {geo && (
+                        <div className="qibla-info">
+                            <MapPin className="w-3 h-3" />
+                            <span>±{Math.round(geo.accuracy)}م</span>
+                        </div>
+                    )}
+                    {status === "active" && (
+                        <button
+                            onClick={() => setShowCalibration(true)}
+                            style={{
+                                background: "none",
+                                border: "none",
+                                color: "hsl(var(--cream-dim))",
+                                opacity: 0.4,
+                                padding: "4px",
+                                cursor: "pointer",
+                            }}
+                        >
+                            <RotateCcw className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
             </header>
+
+            {/* Calibration hint */}
+            {showCalibration && status === "active" && (
+                <div className="qibla-calibration" onClick={() => setShowCalibration(false)}>
+                    <div className="qibla-cal-content">
+                        <p className="qibla-cal-title">📱 لدقة أفضل</p>
+                        <p className="qibla-cal-text">حرّك الهاتف بشكل رقم 8 لمعايرة البوصلة</p>
+                        <p className="qibla-cal-text">أمسك الهاتف بشكل عمودي أو مسطح</p>
+                        <p className="qibla-cal-sub">اضغط للإخفاء</p>
+                    </div>
+                </div>
+            )}
 
             {/* Main */}
             <main className="qibla-main">
@@ -256,7 +326,7 @@ const Qibla: React.FC = () => {
                 {status === "error" && (
                     <div className="qibla-status">
                         <AlertCircle className="w-10 h-10 text-red-400" />
-                        <p className="qibla-status-text">{error}</p>
+                        <p className="qibla-status-text" style={{ whiteSpace: "pre-line" }}>{error}</p>
                         <button onClick={() => window.location.reload()} className="qibla-retry-btn">
                             إعادة المحاولة
                         </button>
