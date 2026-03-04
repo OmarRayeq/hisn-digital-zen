@@ -260,6 +260,7 @@ const Qibla: React.FC = () => {
             {/* Header */}
             <header className="qibla-header">
                 <h1 className="qibla-title">القبلة</h1>
+                <span style={{ color: "yellow", fontSize: "1.2rem", fontWeight: 700 }}>v6</span>
                 {geo && (
                     <div className="qibla-info">
                         <MapPin className="w-3 h-3" />
