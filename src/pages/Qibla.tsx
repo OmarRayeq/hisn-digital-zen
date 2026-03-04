@@ -128,63 +128,70 @@ const Qibla: React.FC = () => {
     // ── Step 2: Start compass ──
     const startCompass = useCallback(() => {
         let gotAbsolute = false;
-        let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
-        let activeListener: string | null = null;
+        let gotAnyData = false;
+        let noDataTimer: ReturnType<typeof setTimeout> | null = null;
 
-        const handleAbsolute = (event: DeviceOrientationEvent) => {
-            if (event.alpha === null) return;
-            gotAbsolute = true;
-            // deviceorientationabsolute: alpha is relative to true north
-            // heading = 360 - alpha gives degrees clockwise from north
+        // Single handler for ALL orientation events
+        const handleOrientation = (event: any) => {
+            // iOS: webkitCompassHeading gives true north heading directly
+            if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
+                gotAnyData = true;
+                headingRef.current = event.webkitCompassHeading;
+                return;
+            }
+
+            if (event.alpha === null || event.alpha === undefined) return;
+            gotAnyData = true;
+
+            // On Android, alpha is counterclockwise from north when using absolute
+            // heading (clockwise from north) = (360 - alpha) mod 360
             let heading = (360 - event.alpha) % 360;
-            // Correct for screen orientation (landscape etc.)
+
+            // Correct for screen orientation
             const screenAngle = window.screen?.orientation?.angle || 0;
             heading = (heading + screenAngle) % 360;
+
             headingRef.current = heading;
         };
 
-        const handleFallback = (event: DeviceOrientationEvent) => {
-            if (gotAbsolute) return; // absolute is working, ignore fallback
-            // iOS: webkitCompassHeading is the true north heading directly
-            if ((event as any).webkitCompassHeading !== undefined) {
-                headingRef.current = (event as any).webkitCompassHeading as number;
-                return;
-            }
-            // Android fallback: alpha may or may not be absolute
-            if (event.alpha !== null) {
-                let heading = (360 - event.alpha) % 360;
-                const screenAngle = window.screen?.orientation?.angle || 0;
-                heading = (heading + screenAngle) % 360;
-                headingRef.current = heading;
-            }
+        // Handler specifically for absolute events (higher priority)
+        const handleAbsolute = (event: any) => {
+            gotAbsolute = true;
+            handleOrientation(event);
         };
 
-        // 1) Try absolute orientation first (best for Android Chrome)
-        window.addEventListener("deviceorientationabsolute", handleAbsolute as any, true);
-        activeListener = "absolute";
+        // Handler for regular events (only used if absolute isn't available)
+        const handleRegular = (event: any) => {
+            if (gotAbsolute) return; // absolute is working, skip
+            handleOrientation(event);
+        };
 
-        // 2) After 1 second, if absolute didn't fire, add regular fallback
-        fallbackTimer = setTimeout(() => {
-            if (!gotAbsolute) {
-                window.addEventListener("deviceorientation", handleFallback, true);
-                activeListener = "both";
-            }
-        }, 1000);
+        // Register both immediately — absolute takes priority via the flag
+        window.addEventListener("deviceorientationabsolute", handleAbsolute, true);
+        window.addEventListener("deviceorientation", handleRegular, true);
 
         // Smooth animation loop
         const animate = () => {
-            smoothHeadingRef.current = smoothAngle(smoothHeadingRef.current, headingRef.current, 0.2);
+            smoothHeadingRef.current = smoothAngle(smoothHeadingRef.current, headingRef.current, 0.25);
             setCompassHeading(smoothHeadingRef.current);
             animFrameRef.current = requestAnimationFrame(animate);
         };
         animFrameRef.current = requestAnimationFrame(animate);
 
+        // After 3 seconds, if no compass data at all, show error
+        noDataTimer = setTimeout(() => {
+            if (!gotAnyData) {
+                setError("لم يتم الكشف عن مستشعر البوصلة. تأكد من أن جهازك يدعم البوصلة");
+                setStatus("error");
+            }
+        }, 3000);
+
         setStatus("active");
 
         return () => {
-            if (fallbackTimer) clearTimeout(fallbackTimer);
-            window.removeEventListener("deviceorientationabsolute", handleAbsolute as any, true);
-            window.removeEventListener("deviceorientation", handleFallback, true);
+            if (noDataTimer) clearTimeout(noDataTimer);
+            window.removeEventListener("deviceorientationabsolute", handleAbsolute, true);
+            window.removeEventListener("deviceorientation", handleRegular, true);
             if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
         };
     }, []);
@@ -192,7 +199,6 @@ const Qibla: React.FC = () => {
     // Request compass permission (iOS 13+ requires explicit permission)
     const requestCompass = useCallback(async () => {
         try {
-            // iOS 13+ requires permission
             if (typeof (DeviceOrientationEvent as any).requestPermission === "function") {
                 const perm = await (DeviceOrientationEvent as any).requestPermission();
                 if (perm === "granted") {
@@ -202,7 +208,6 @@ const Qibla: React.FC = () => {
                     setStatus("error");
                 }
             } else {
-                // Android / non-iOS — no permission needed
                 startCompass();
             }
         } catch {
@@ -211,18 +216,16 @@ const Qibla: React.FC = () => {
         }
     }, [startCompass]);
 
-    // Auto-start compass on Android (no permission needed), wait for tap on iOS
+    // Auto-start compass on Android, wait for tap on iOS
     useEffect(() => {
         if (status !== "requesting-compass") return;
         if (typeof (DeviceOrientationEvent as any).requestPermission !== "function") {
-            // Android: auto-start
             const cleanup = startCompass();
             return cleanup;
         }
-        // iOS: wait for user tap (requestPermission needs gesture)
     }, [status, startCompass]);
 
-    // Cleanup animation frame on unmount
+    // Cleanup on unmount
     useEffect(() => {
         return () => {
             if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
