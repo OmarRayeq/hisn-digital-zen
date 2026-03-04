@@ -1153,65 +1153,29 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px 16px;
+  padding: 0;
   -webkit-overflow-scrolling: touch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 .quran-loading {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  inset: 0;
+}
+
+.quran-mushaf-img {
+  width: 100%;
   height: 100%;
-}
-
-.quran-text-container {
-  text-align: center;
-  line-height: 2.8;
-  direction: rtl;
-}
-
-.quran-surah-banner {
-  margin: 16px auto 20px;
-  padding: 0;
-}
-
-.quran-surah-banner-inner {
-  display: inline-block;
-  padding: 8px 32px;
-  border: 2px solid hsl(0 0% 30%);
-  border-radius: 8px;
-  background: hsl(0 0% 10%);
-  font-family: 'Noto Naskh Arabic', serif;
-  font-size: 1rem;
-  font-weight: 700;
-  color: hsl(0 0% 80%);
-  text-align: center;
-}
-
-.quran-basmala {
-  text-align: center;
-  font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
-  font-size: 1.3rem;
-  color: hsl(0 0% 88%);
-  margin: 8px 0 16px;
-  line-height: 2;
-}
-
-.quran-verse-text {
-  font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
-  font-size: 1.45rem;
-  color: hsl(0 0% 92%);
-  line-height: 2.8;
-  word-spacing: 4px;
-  letter-spacing: 0.5px;
-}
-
-.quran-verse-num {
-  font-family: 'Noto Naskh Arabic', serif;
-  font-size: 0.85rem;
-  color: hsl(40 52% 55%);
-  margin: 0 2px;
-  vertical-align: middle;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .quran-footer {

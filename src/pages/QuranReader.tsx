@@ -1,11 +1,18 @@
 // ============================================================
-// القرآن الكريم — Quran Reader (Page-by-page Mushaf)
+// القرآن الكريم — Quran Reader (Mushaf Page Images)
 // ============================================================
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronRight, ChevronLeft, BookOpen, X, Loader2 } from "lucide-react";
 
-/* ── Surah metadata (name, startPage) ── */
+/* ── CDN for Mushaf page images ── */
+const IMG_BASE = "https://cdn.jsdelivr.net/gh/GovarJabbar/Quran-PNG@master/";
+
+function pageUrl(page: number): string {
+    return `${IMG_BASE}${page.toString().padStart(3, "0")}.png`;
+}
+
+/* ── Surah metadata ── */
 const SURAHS: { name: string; startPage: number }[] = [
     { name: "الفاتحة", startPage: 1 }, { name: "البقرة", startPage: 2 },
     { name: "آل عمران", startPage: 50 }, { name: "النساء", startPage: 77 },
@@ -66,7 +73,7 @@ const SURAHS: { name: string; startPage: number }[] = [
     { name: "الفلق", startPage: 604 }, { name: "الناس", startPage: 604 },
 ];
 
-/* ── Juz metadata (juz number → start page) ── */
+/* ── Juz start pages ── */
 const JUZ_PAGES = [
     1, 22, 42, 62, 82, 102, 121, 142, 162, 182,
     201, 222, 242, 262, 282, 302, 322, 342, 362, 382,
@@ -88,11 +95,8 @@ function getJuzForPage(page: number): number {
     return 1;
 }
 
-/* ── Verse data type ── */
-interface Verse {
-    verse_key: string;
-    text_uthmani: string;
-}
+const toArabicNum = (n: number): string =>
+    n.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
 
 /* ── Component ── */
 const QuranReader: React.FC = () => {
@@ -103,54 +107,46 @@ const QuranReader: React.FC = () => {
         const saved = localStorage.getItem(STORAGE_KEY);
         return saved ? parseInt(saved, 10) : 1;
     });
-    const [verses, setVerses] = useState<Verse[]>([]);
     const [loading, setLoading] = useState(true);
     const [showIndex, setShowIndex] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
     const touchStartRef = useRef<number>(0);
     const touchStartYRef = useRef<number>(0);
-    const containerRef = useRef<HTMLDivElement>(null);
 
     // Save position
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, currentPage.toString());
     }, [currentPage]);
 
-    // Fetch page text
-    const fetchPage = useCallback(async (page: number) => {
-        setLoading(true);
-        try {
-            const res = await fetch(
-                `https://api.quran.com/api/v4/quran/verses/uthmani?page_number=${page}`
-            );
-            const data = await res.json();
-            setVerses(data.verses || []);
-        } catch {
-            setVerses([]);
-        }
-        setLoading(false);
-    }, []);
-
+    // Preload adjacent pages
     useEffect(() => {
-        fetchPage(currentPage);
-    }, [currentPage, fetchPage]);
+        [currentPage - 1, currentPage + 1].forEach((p) => {
+            if (p >= 1 && p <= TOTAL_PAGES) {
+                const img = new Image();
+                img.src = pageUrl(p);
+            }
+        });
+    }, [currentPage]);
 
     // Navigation
     const goNext = useCallback(() => {
         setCurrentPage((p) => Math.min(p + 1, TOTAL_PAGES));
+        setLoading(true);
     }, []);
 
     const goPrev = useCallback(() => {
         setCurrentPage((p) => Math.max(p - 1, 1));
+        setLoading(true);
     }, []);
 
     const goToPage = useCallback((page: number) => {
         setCurrentPage(Math.max(1, Math.min(page, TOTAL_PAGES)));
         setShowIndex(false);
+        setLoading(true);
     }, []);
 
-    // Touch swipe (RTL: swipe left = next page, swipe right = prev page for Arabic)
+    // Touch swipe — RTL: swipe right = next, swipe left = prev
     const handleTouchStart = (e: React.TouchEvent) => {
         touchStartRef.current = e.touches[0].clientX;
         touchStartYRef.current = e.touches[0].clientY;
@@ -160,95 +156,55 @@ const QuranReader: React.FC = () => {
         const dx = e.changedTouches[0].clientX - touchStartRef.current;
         const dy = e.changedTouches[0].clientY - touchStartYRef.current;
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-            // In RTL mode: swipe right (dx > 0) = next page, swipe left = prev page
             if (dx > 0) goNext();
             else goPrev();
         }
     };
 
-    // Current surah and juz
     const surahName = getSurahForPage(currentPage);
     const juzNumber = getJuzForPage(currentPage);
 
-    // Filtered surahs for index
     const filteredSurahs = searchQuery
         ? SURAHS.filter((s, i) =>
             s.name.includes(searchQuery) || (i + 1).toString().includes(searchQuery)
         )
         : SURAHS;
 
-    // Format verse number (Arabic-Indic numerals)
-    const toArabicNum = (n: number): string => {
-        return n.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
-    };
-
     return (
         <div className="quran-page" dir="rtl">
             {/* Header */}
             <header className="quran-header">
                 <span className="quran-header-text">{surahName}</span>
-                <button
-                    className="quran-index-btn"
-                    onClick={() => setShowIndex(true)}
-                >
+                <button className="quran-index-btn" onClick={() => setShowIndex(true)}>
                     <BookOpen className="w-4 h-4" />
                 </button>
                 <span className="quran-header-text">الجزء {toArabicNum(juzNumber)}</span>
             </header>
 
-            {/* Page content */}
+            {/* Mushaf Page Image */}
             <main
-                ref={containerRef}
                 className="quran-content"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
             >
-                {loading ? (
+                {loading && (
                     <div className="quran-loading">
                         <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(40 52% 55%)" }} />
                     </div>
-                ) : (
-                    <div className="quran-text-container">
-                        {verses.map((v) => {
-                            const [surahNum, verseNum] = v.verse_key.split(":").map(Number);
-                            const isBasmala = verseNum === 1 && surahNum !== 1 && surahNum !== 9;
-                            const isFatiha = surahNum === 1;
-
-                            return (
-                                <React.Fragment key={v.verse_key}>
-                                    {/* Surah header for first verse */}
-                                    {verseNum === 1 && (
-                                        <div className="quran-surah-banner">
-                                            <div className="quran-surah-banner-inner">
-                                                <span>سورة {SURAHS[surahNum - 1]?.name}</span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Basmala separate line */}
-                                    {isBasmala && (
-                                        <p className="quran-basmala">
-                                            بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
-                                        </p>
-                                    )}
-
-                                    {/* Verse text */}
-                                    <span className="quran-verse-text">
-                                        {isFatiha && verseNum === 1 ? "" : (isBasmala ? v.text_uthmani.replace(/^بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ\s*/, "") : v.text_uthmani)}
-                                        {" "}
-                                        <span className="quran-verse-num">
-                                            ﴿{toArabicNum(verseNum)}﴾
-                                        </span>
-                                        {" "}
-                                    </span>
-                                </React.Fragment>
-                            );
-                        })}
-                    </div>
                 )}
+                <img
+                    key={currentPage}
+                    src={pageUrl(currentPage)}
+                    alt={`صفحة ${toArabicNum(currentPage)}`}
+                    className="quran-mushaf-img"
+                    style={{ display: loading ? "none" : "block" }}
+                    onLoad={() => setLoading(false)}
+                    onError={() => setLoading(false)}
+                    draggable={false}
+                />
             </main>
 
-            {/* Page number */}
+            {/* Footer with page nav */}
             <footer className="quran-footer">
                 <button className="quran-nav-arrow" onClick={goNext} disabled={currentPage >= TOTAL_PAGES}>
                     <ChevronRight className="w-5 h-5" />
@@ -280,7 +236,7 @@ const QuranReader: React.FC = () => {
                         />
 
                         <div className="quran-index-list">
-                            {filteredSurahs.map((surah, idx) => {
+                            {filteredSurahs.map((surah) => {
                                 const realIdx = SURAHS.indexOf(surah);
                                 const isActive = currentPage >= surah.startPage &&
                                     (realIdx === SURAHS.length - 1 || currentPage < SURAHS[realIdx + 1].startPage);
