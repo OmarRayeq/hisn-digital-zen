@@ -130,44 +130,67 @@ const Qibla: React.FC = () => {
     // ── Step 2: Start compass ──
     const startCompass = useCallback(() => {
         let eventCount = 0;
-        let lastSource = "none";
         let noDataTimer: ReturnType<typeof setTimeout> | null = null;
         let gotData = false;
+
+        /**
+         * Compute compass heading from alpha, beta, gamma using the rotation
+         * matrix method. This is the same approach used by Google Maps and native
+         * Android SensorManager.getOrientation().
+         */
+        const computeHeading = (alpha: number, beta: number, gamma: number): number => {
+            const alphaRad = (alpha * Math.PI) / 180;
+            const betaRad = (beta * Math.PI) / 180;
+            const gammaRad = (gamma * Math.PI) / 180;
+
+            // Rotation matrix components
+            const cA = Math.cos(alphaRad);
+            const sA = Math.sin(alphaRad);
+            const sB = Math.sin(betaRad);
+            const cG = Math.cos(gammaRad);
+            const sG = Math.sin(gammaRad);
+
+            // Compute compass heading from rotation matrix
+            const rA = -cA * sG - sA * sB * cG;
+            const rB = -sA * sG + cA * sB * cG;
+
+            let heading = Math.atan2(rA, rB) * (180 / Math.PI);
+            if (heading < 0) heading += 360;
+
+            return heading;
+        };
 
         const handler = (event: any, source: string) => {
             eventCount++;
             gotData = true;
-            lastSource = source;
 
             let heading: number | null = null;
 
-            // iOS: direct compass heading
+            // iOS: direct compass heading (most accurate on iOS)
             if (event.webkitCompassHeading != null) {
                 heading = event.webkitCompassHeading;
             }
-            // Android/other: compute from alpha
+            // Android/other: use rotation matrix method with alpha+beta+gamma
+            else if (event.alpha != null && event.beta != null && event.gamma != null) {
+                heading = computeHeading(event.alpha, event.beta, event.gamma);
+            }
+            // Fallback: just alpha
             else if (event.alpha != null) {
                 heading = (360 - event.alpha) % 360;
             }
 
             if (heading !== null) {
-                // Screen orientation correction
-                const screenAngle = window.screen?.orientation?.angle || 0;
-                heading = (heading + screenAngle) % 360;
                 headingRef.current = heading;
             }
 
-            // Update debug info every 10th event
-            if (eventCount % 10 === 1) {
-                debugRef.current = `src:${source} α:${event.alpha?.toFixed(1)} abs:${event.absolute} h:${heading?.toFixed(1)} #${eventCount}`;
-                setDebugInfo(debugRef.current);
-            }
+            // Update debug on EVERY event
+            debugRef.current = `${source} α:${event.alpha?.toFixed(0)} β:${event.beta?.toFixed(0)} γ:${event.gamma?.toFixed(0)} → h:${heading?.toFixed(0)} #${eventCount}`;
+            setDebugInfo(debugRef.current);
         };
 
         const onAbsolute = (e: any) => handler(e, "ABS");
         const onRegular = (e: any) => handler(e, "REG");
 
-        // Register both — no capture phase, simpler
         window.addEventListener("deviceorientationabsolute", onAbsolute);
         window.addEventListener("deviceorientation", onRegular);
 
@@ -260,7 +283,7 @@ const Qibla: React.FC = () => {
             {/* Header */}
             <header className="qibla-header">
                 <h1 className="qibla-title">القبلة</h1>
-                <span style={{ color: "yellow", fontSize: "1.2rem", fontWeight: 700 }}>v6</span>
+                <span style={{ color: "yellow", fontSize: "1.2rem", fontWeight: 700 }}>v7</span>
                 {geo && (
                     <div className="qibla-info">
                         <MapPin className="w-3 h-3" />
@@ -268,6 +291,22 @@ const Qibla: React.FC = () => {
                     </div>
                 )}
             </header>
+
+            {/* Debug banner - always visible */}
+            <div style={{
+                background: "yellow",
+                color: "black",
+                padding: "8px 12px",
+                fontSize: "0.75rem",
+                fontFamily: "monospace",
+                direction: "ltr",
+                textAlign: "left",
+                position: "relative",
+                zIndex: 100,
+                wordBreak: "break-all",
+            }}>
+                {debugInfo || "waiting for sensor data..."}
+            </div>
 
             {/* Main */}
             <main className="qibla-main">
