@@ -8,6 +8,7 @@ import Tasbeeh from "./pages/Tasbeeh";
 import Qibla from "./pages/Qibla";
 import QuranReader from "./pages/QuranReader";
 import Saved from "./pages/Saved";
+import Stats from "./pages/Stats";
 import AdhkarReader from "./pages/AdhkarReader";
 import HisnReader from "./pages/HisnReader";
 import NotFound from "./pages/NotFound";
@@ -20,7 +21,19 @@ const MAIN_PATHS = ["/", "/tasbeeh", "/qibla", "/saved"];
 
 const AppContent = () => {
   const location = useLocation();
-  const showNav = MAIN_PATHS.includes(location.pathname);
+  const isQuranPage = location.pathname === "/quran";
+  const showNav = MAIN_PATHS.includes(location.pathname) && !isQuranPage;
+
+  if (isQuranPage) {
+    // Quran gets full-screen treatment — no container constraints
+    return (
+      <div className="fixed inset-0">
+        <Routes>
+          <Route path="/quran" element={<QuranReader />} />
+        </Routes>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 flex flex-col" style={{ maxWidth: "640px", margin: "0 auto" }}>
@@ -31,6 +44,7 @@ const AppContent = () => {
           <Route path="/qibla" element={<Qibla />} />
           <Route path="/quran" element={<QuranReader />} />
           <Route path="/saved" element={<Saved />} />
+          <Route path="/stats" element={<Stats />} />
           <Route path="/adhkar/:categoryId" element={<AdhkarReader />} />
           <Route path="/hisn/:categoryId" element={<HisnReader />} />
           <Route path="/index" element={<Navigate to="/" replace />} />

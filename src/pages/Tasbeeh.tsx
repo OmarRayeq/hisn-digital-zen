@@ -4,7 +4,7 @@
 // ============================================================
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Plus, X, Trash2 } from "lucide-react";
 
 /* ── Types ── */
 interface Preset {
@@ -43,6 +43,7 @@ const CONFETTI_COLORS = [
 
 const CONFETTI_COUNT = 28;
 const STORAGE_KEY = "tasbeeh-state";
+const CUSTOM_PRESETS_KEY = "tasbeeh-custom-presets";
 
 /* ── State persistence ── */
 function loadState() {
@@ -71,8 +72,22 @@ const Tasbeeh: React.FC = () => {
     const [textKey, setTextKey] = useState(0);
     const [countKey, setCountKey] = useState(0);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [newText, setNewText] = useState("");
+    const [newTarget, setNewTarget] = useState("33");
+    const [customPresets, setCustomPresets] = useState<Preset[]>(() => {
+        try {
+            return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || "[]");
+        } catch { return []; }
+    });
 
-    const activePreset = PRESETS.find((p) => p.id === state.activeId) || PRESETS[0];
+    // Save custom presets
+    useEffect(() => {
+        localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(customPresets));
+    }, [customPresets]);
+
+    const allPresets = [...PRESETS, ...customPresets];
+    const activePreset = allPresets.find((p) => p.id === state.activeId) || PRESETS[0];
     const remaining = Math.max(0, activePreset.target - state.count);
     const progress = activePreset.target > 0 ? (state.count / activePreset.target) * 100 : 0;
 
@@ -294,20 +309,102 @@ const Tasbeeh: React.FC = () => {
 
             {/* ── Presets ── */}
             <nav className="tasbeeh-presets">
-                {PRESETS.map((preset) => {
+                {allPresets.map((preset) => {
                     const isActive = preset.id === state.activeId;
+                    const isCustom = !PRESETS.some((p) => p.id === preset.id);
                     return (
                         <button
                             key={preset.id}
                             onClick={() => handlePresetChange(preset.id)}
                             className={`tasbeeh-chip ${isActive ? "tasbeeh-chip-active" : ""}`}
+                            style={{ position: "relative" }}
                         >
                             {preset.text}
                             <span className="tasbeeh-chip-num">({preset.target})</span>
+                            {isCustom && (
+                                <span
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCustomPresets((prev) => prev.filter((p) => p.id !== preset.id));
+                                        if (state.activeId === preset.id) handlePresetChange("subhanallah");
+                                    }}
+                                    style={{ marginRight: 6, color: "hsl(0 60% 55%)", fontSize: "0.7rem", cursor: "pointer" }}
+                                >
+                                    ✖
+                                </span>
+                            )}
                         </button>
                     );
                 })}
+
+                {/* Add custom preset button */}
+                {!showAddForm && (
+                    <button
+                        onClick={() => setShowAddForm(true)}
+                        className="tasbeeh-chip"
+                        style={{ borderStyle: "dashed", opacity: 0.6, minWidth: 40 }}
+                    >
+                        <Plus className="w-3.5 h-3.5" />
+                    </button>
+                )}
             </nav>
+
+            {/* ── Add Custom Preset Form ── */}
+            {showAddForm && (
+                <div className="animate-fade-in-up" style={{ padding: "0 16px 12px" }}>
+                    <div
+                        className="rounded-2xl border p-4 flex flex-col gap-3"
+                        style={{ background: "hsl(150 38% 10%)", borderColor: "hsl(150 25% 18%)" }}
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-cream-dim text-xs font-arabic">إضافة ذكر جديد</span>
+                            <button onClick={() => setShowAddForm(false)} className="text-cream-dim/40">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <input
+                            type="text"
+                            value={newText}
+                            onChange={(e) => setNewText(e.target.value)}
+                            placeholder="نص الذكر..."
+                            className="w-full bg-emerald-mid/50 border border-emerald-border rounded-xl py-2.5 px-4 text-cream text-sm font-arabic placeholder:text-cream-dim/30 focus:outline-none focus:border-gold/30"
+                            dir="rtl"
+                        />
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="number"
+                                value={newTarget}
+                                onChange={(e) => setNewTarget(e.target.value)}
+                                placeholder="العدد"
+                                min={1}
+                                max={9999}
+                                className="w-24 bg-emerald-mid/50 border border-emerald-border rounded-xl py-2.5 px-4 text-cream text-sm font-arabic placeholder:text-cream-dim/30 focus:outline-none focus:border-gold/30"
+                                dir="ltr"
+                            />
+                            <button
+                                onClick={() => {
+                                    if (!newText.trim()) return;
+                                    const id = `custom-${Date.now()}`;
+                                    setCustomPresets((prev) => [...prev, { id, text: newText.trim(), target: parseInt(newTarget) || 33 }]);
+                                    setNewText("");
+                                    setNewTarget("33");
+                                    setShowAddForm(false);
+                                    handlePresetChange(id);
+                                }}
+                                disabled={!newText.trim()}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-arabic transition-all"
+                                style={{
+                                    background: newText.trim() ? "hsl(40 52% 55% / 0.15)" : "hsl(150 30% 12%)",
+                                    border: `1px solid ${newText.trim() ? "hsl(40 52% 55% / 0.3)" : "hsl(150 25% 18%)"}`,
+                                    color: newText.trim() ? "hsl(40 52% 55%)" : "hsl(150 15% 35%)",
+                                }}
+                            >
+                                إضافة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,7 +1,8 @@
 import React from "react";
-import { X } from "lucide-react";
+import { X, Moon, Sun } from "lucide-react";
 import type { FontSize } from "@/hooks/useAdhkar";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useTheme } from "@/hooks/useTheme";
 import NotificationSettings from "@/components/NotificationSettings";
 
 interface SettingsModalProps {
@@ -24,6 +25,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     setMorningTime,
     setEveningTime,
   } = useNotifications();
+
+  const { theme, toggleTheme } = useTheme();
 
   if (!isOpen) return null;
 
@@ -72,6 +75,40 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             onMorningTimeChange={setMorningTime}
             onEveningTimeChange={setEveningTime}
           />
+
+          {/* ── فاصل ── */}
+          <div className="islamic-divider py-1">
+            <span className="text-gold text-xs font-arabic px-3 opacity-50">✦</span>
+          </div>
+
+          {/* ── المظهر (Dark/Light) ── */}
+          <div>
+            <h3 className="text-cream-dim text-sm font-arabic mb-3">المظهر</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => theme !== "dark" && toggleTheme()}
+                className={`py-3 rounded-2xl border text-center font-arabic transition-all duration-200 flex items-center justify-center gap-2
+                  ${theme === "dark"
+                    ? "bg-gold/20 border-gold text-gold"
+                    : "bg-emerald-surface border-emerald-border text-cream-dim hover:border-gold/40"
+                  }`}
+              >
+                <Moon className="w-4 h-4" />
+                <span className="text-sm">داكن</span>
+              </button>
+              <button
+                onClick={() => theme !== "light" && toggleTheme()}
+                className={`py-3 rounded-2xl border text-center font-arabic transition-all duration-200 flex items-center justify-center gap-2
+                  ${theme === "light"
+                    ? "bg-gold/20 border-gold text-gold"
+                    : "bg-emerald-surface border-emerald-border text-cream-dim hover:border-gold/40"
+                  }`}
+              >
+                <Sun className="w-4 h-4" />
+                <span className="text-sm">فاتح</span>
+              </button>
+            </div>
+          </div>
 
           {/* ── فاصل ── */}
           <div className="islamic-divider py-1">

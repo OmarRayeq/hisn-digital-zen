@@ -4,7 +4,7 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Star, Flame, Clock, Trash2 } from "lucide-react";
+import { Star, Flame, Clock, Trash2, BarChart3 } from "lucide-react";
 import { useFavorites, useStreak, useHistory } from "@/hooks/useFavorites";
 
 const Saved: React.FC = () => {
@@ -20,8 +20,14 @@ const Saved: React.FC = () => {
             dir="rtl"
         >
             {/* Header */}
-            <header className="flex-none px-5 pt-8 pb-4">
+            <header className="flex-none px-5 pt-8 pb-4 flex items-center justify-between">
                 <h1 className="text-gold text-2xl font-arabic font-bold">المحفوظات</h1>
+                <button
+                    onClick={() => navigate("/stats")}
+                    className="w-10 h-10 rounded-2xl glass-card-premium border border-emerald-border flex items-center justify-center text-cream-dim hover:text-gold transition-all"
+                >
+                    <BarChart3 className="w-4 h-4" />
+                </button>
             </header>
 
             {/* Content */}

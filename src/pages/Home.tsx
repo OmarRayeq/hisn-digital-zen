@@ -12,6 +12,8 @@ import { useDailyProgress, useStreak } from "@/hooks/useFavorites";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useFontSize } from "@/hooks/useAdhkar";
 import DailyProgressCard from "@/components/DailyProgressCard";
+import DailyInspirationCard from "@/components/DailyInspirationCard";
+import CommunityCounter from "@/components/CommunityCounter";
 import SettingsModal from "@/components/SettingsModal";
 
 const Home: React.FC = () => {
@@ -122,6 +124,12 @@ const Home: React.FC = () => {
             eveningDone={eveningDone}
             streak={streak}
           />
+
+          {/* ── Daily Ayah + Hadith ── */}
+          <DailyInspirationCard />
+
+          {/* ── Lifetime Counter ── */}
+          <CommunityCounter />
 
           {/* ── Featured: Morning & Evening ── */}
           <div className="space-y-3">

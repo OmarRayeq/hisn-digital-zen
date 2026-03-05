@@ -1,12 +1,13 @@
 // ============================================================
-// القرآن الكريم — Full-screen Mushaf Reader (Ayah-style)
+// القرآن الكريم — Full-screen المصحف المدني 1441
+// Pure black, edge-to-edge, tap zones, swipe navigation
 // ============================================================
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, X, Loader2, ArrowRight } from "lucide-react";
 
-/* ── CDN for Mushaf page images ── */
+/* ── CDN for المصحف المدني page images ── */
 const IMG_BASE = "https://cdn.jsdelivr.net/gh/GovarJabbar/Quran-PNG@master/";
 
 function pageUrl(page: number): string {
@@ -109,11 +110,11 @@ const QuranReader: React.FC = () => {
     });
     const [loading, setLoading] = useState(true);
     const [showIndex, setShowIndex] = useState(false);
-    const [showControls, setShowControls] = useState(false);
+    const [showOverlay, setShowOverlay] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
     const touchStartRef = useRef<{ x: number; y: number; t: number }>({ x: 0, y: 0, t: 0 });
-    const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>();
+    const overlayTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, currentPage.toString());
@@ -129,13 +130,13 @@ const QuranReader: React.FC = () => {
         });
     }, [currentPage]);
 
-    // Auto-hide controls after 3 seconds
+    // Auto-hide overlay after 4 seconds
     useEffect(() => {
-        if (showControls) {
-            controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
-            return () => clearTimeout(controlsTimerRef.current);
+        if (showOverlay) {
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 4000);
+            return () => clearTimeout(overlayTimerRef.current);
         }
-    }, [showControls]);
+    }, [showOverlay]);
 
     const goNext = useCallback(() => {
         setCurrentPage((p) => Math.min(p + 1, TOTAL_PAGES));
@@ -153,7 +154,7 @@ const QuranReader: React.FC = () => {
         setLoading(true);
     }, []);
 
-    // Touch swipe — RTL: swipe right = next page (prev in reading), swipe left = prev page
+    // Touch: swipe + tap zones
     const handleTouchStart = (e: React.TouchEvent) => {
         touchStartRef.current = {
             x: e.touches[0].clientX,
@@ -174,9 +175,36 @@ const QuranReader: React.FC = () => {
             return;
         }
 
-        // Tap detection (short press, minimal movement)
+        // Tap detection — use zones
         if (dt < 300 && Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-            setShowControls((v) => !v);
+            const screenWidth = window.innerWidth;
+            const tapX = e.changedTouches[0].clientX;
+            const zone = tapX / screenWidth;
+
+            if (zone < 0.3) {
+                // Left 30% → next page (RTL: next is left)
+                goNext();
+            } else if (zone > 0.7) {
+                // Right 30% → prev page (RTL: prev is right)
+                goPrev();
+            } else {
+                // Center 40% → toggle overlay
+                setShowOverlay((v) => !v);
+            }
+        }
+    };
+
+    // Mouse click for desktop — same zone logic
+    const handleClick = (e: React.MouseEvent) => {
+        const screenWidth = window.innerWidth;
+        const zone = e.clientX / screenWidth;
+
+        if (zone < 0.3) {
+            goNext();
+        } else if (zone > 0.7) {
+            goPrev();
+        } else {
+            setShowOverlay((v) => !v);
         }
     };
 
@@ -190,72 +218,103 @@ const QuranReader: React.FC = () => {
         : SURAHS;
 
     return (
-        <div className="quran-page" dir="rtl">
-            {/* Full-screen Mushaf image */}
+        <div className="mushaf-reader" dir="rtl">
+            {/* Full-screen Mushaf image — pure black */}
             <div
-                className="quran-fullscreen"
+                className="mushaf-viewport"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
+                onClick={handleClick}
             >
                 {loading && (
-                    <div className="quran-loading">
-                        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(0 0% 40%)" }} />
+                    <div className="mushaf-loading">
+                        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(40 52% 55%)" }} />
                     </div>
                 )}
                 <img
                     key={currentPage}
                     src={pageUrl(currentPage)}
                     alt={`صفحة ${toArabicNum(currentPage)}`}
-                    className="quran-mushaf-img"
+                    className="mushaf-img"
                     style={{ opacity: loading ? 0 : 1 }}
                     onLoad={() => setLoading(false)}
                     onError={() => setLoading(false)}
                     draggable={false}
                 />
 
-                {/* Floating page number badge — always visible */}
-                <div className="quran-page-badge-wrap">
-                    <div className="quran-page-badge">
-                        <span>{toArabicNum(currentPage)}</span>
+                {/* Floating page number — always visible */}
+                <div className="mushaf-page-num">
+                    <span>{toArabicNum(currentPage)}</span>
+                </div>
+
+                {/* Top overlay — appears on center tap */}
+                <div className={`mushaf-overlay-top ${showOverlay ? "mushaf-overlay-visible" : ""}`}>
+                    <div className="mushaf-overlay-bar">
+                        <button
+                            className="mushaf-overlay-btn"
+                            onClick={(e) => { e.stopPropagation(); navigate("/"); }}
+                            aria-label="رجوع"
+                        >
+                            <ArrowRight className="w-5 h-5" />
+                        </button>
+                        <div className="mushaf-overlay-info">
+                            <span className="mushaf-overlay-surah">سورة {surahName}</span>
+                            <span className="mushaf-overlay-juz">الجزء {toArabicNum(juzNumber)} • صفحة {toArabicNum(currentPage)}</span>
+                        </div>
+                        <button
+                            className="mushaf-overlay-btn"
+                            onClick={(e) => { e.stopPropagation(); setShowIndex(true); setShowOverlay(false); }}
+                        >
+                            <BookOpen className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
 
-                {/* Top overlay — appears on tap */}
-                <div className={`quran-overlay-top ${showControls ? "visible" : ""}`}>
-                    <span className="quran-overlay-text">{surahName}</span>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <button className="quran-overlay-index-btn" onClick={(e) => { e.stopPropagation(); setShowIndex(true); setShowControls(false); }}>
-                            <BookOpen className="w-4 h-4" />
-                        </button>
-                        <button className="quran-overlay-index-btn" onClick={(e) => { e.stopPropagation(); navigate('/'); }} aria-label="رجوع">
-                            <ArrowRight className="w-4 h-4" />
-                        </button>
+                {/* Bottom overlay — page slider */}
+                <div className={`mushaf-overlay-bottom ${showOverlay ? "mushaf-overlay-visible" : ""}`}>
+                    <div className="mushaf-slider-wrap">
+                        <span className="mushaf-slider-label">١</span>
+                        <input
+                            type="range"
+                            min={1}
+                            max={TOTAL_PAGES}
+                            value={currentPage}
+                            onChange={(e) => {
+                                e.stopPropagation();
+                                setCurrentPage(parseInt(e.target.value));
+                                setLoading(true);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mushaf-slider"
+                            dir="ltr"
+                        />
+                        <span className="mushaf-slider-label">٦٠٤</span>
                     </div>
-                    <span className="quran-overlay-text">الجزء {toArabicNum(juzNumber)}</span>
                 </div>
             </div>
 
-            {/* Surah Index */}
+            {/* Surah Index Modal */}
             {showIndex && (
-                <div className="quran-index-overlay" onClick={() => setShowIndex(false)}>
-                    <div className="quran-index-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="quran-index-header">
-                            <h2 className="quran-index-title">فهرس السور</h2>
-                            <button className="quran-index-close" onClick={() => setShowIndex(false)}>
+                <div className="mushaf-index-overlay" onClick={() => setShowIndex(false)}>
+                    <div className="mushaf-index-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="mushaf-index-header">
+                            <button className="mushaf-index-close" onClick={() => setShowIndex(false)}>
                                 <X className="w-5 h-5" />
                             </button>
+                            <h2 className="mushaf-index-title">فهرس السور</h2>
+                            <div style={{ width: 28 }} />
                         </div>
 
                         <input
                             type="text"
-                            className="quran-index-search"
+                            className="mushaf-index-search"
                             placeholder="ابحث عن سورة..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             autoFocus
                         />
 
-                        <div className="quran-index-list">
+                        <div className="mushaf-index-list">
                             {filteredSurahs.map((surah) => {
                                 const realIdx = SURAHS.indexOf(surah);
                                 const isActive = currentPage >= surah.startPage &&
@@ -263,12 +322,12 @@ const QuranReader: React.FC = () => {
                                 return (
                                     <button
                                         key={realIdx}
-                                        className={`quran-index-item ${isActive ? "active" : ""}`}
+                                        className={`mushaf-index-item ${isActive ? "active" : ""}`}
                                         onClick={() => goToPage(surah.startPage)}
                                     >
-                                        <span className="quran-index-num">{toArabicNum(realIdx + 1)}</span>
-                                        <span className="quran-index-name">{surah.name}</span>
-                                        <span className="quran-index-page">ص {toArabicNum(surah.startPage)}</span>
+                                        <span className="mushaf-index-num">{toArabicNum(realIdx + 1)}</span>
+                                        <span className="mushaf-index-name">{surah.name}</span>
+                                        <span className="mushaf-index-page">ص {toArabicNum(surah.startPage)}</span>
                                     </button>
                                 );
                             })}
