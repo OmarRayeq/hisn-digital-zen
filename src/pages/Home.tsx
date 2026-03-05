@@ -1,23 +1,31 @@
 // ============================================================
-// الصفحة الرئيسية — تصميم فاخر Google Play Quality
-// بطاقات مميزة + رسوم متحركة + أقسام حصن المسلم
+// الصفحة الرئيسية — تصميم فاخر Ultra Premium
+// بطاقات مميزة + إشعارات + رسوم متحركة + أقسام حصن المسلم
 // ============================================================
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sun, Moon, ChevronDown, ChevronUp, Loader2, Search, X } from "lucide-react";
+import { Sun, Moon, ChevronDown, Loader2, Search, X, Settings } from "lucide-react";
 import { ADHKAR_CATEGORIES, AdhkarCategoryInfo, MasterCategory } from "@/lib/adhkar-api";
 import { useHisnCategories } from "@/hooks/useAdhkar";
 import { useDailyProgress, useStreak } from "@/hooks/useFavorites";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useFontSize } from "@/hooks/useAdhkar";
 import DailyProgressCard from "@/components/DailyProgressCard";
+import SettingsModal from "@/components/SettingsModal";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { categories: hisnGroups, loading: hisnLoading } = useHisnCategories();
   const { morningDone, eveningDone } = useDailyProgress();
   const { streak } = useStreak();
+  const { fontSize, setFontSize } = useFontSize();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Initialize notifications (schedules timers on mount)
+  useNotifications();
 
   // Filter categories by search
   const filteredGroups = hisnGroups.filter((group) => {
@@ -40,21 +48,40 @@ const Home: React.FC = () => {
       style={{ background: "var(--gradient-hero)", touchAction: "none" }}
       dir="rtl"
     >
+      {/* ── Ambient floating particles ── */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
+        <div className="floating-particle particle-1" />
+        <div className="floating-particle particle-2" />
+        <div className="floating-particle particle-3" />
+        <div className="floating-particle particle-4" />
+        <div className="floating-particle particle-5" />
+        {/* Islamic geometric overlay */}
+        <div className="islamic-geo-overlay" />
+      </div>
+
       {/* ── الترويسة ── */}
-      <header className="flex-none px-5 pt-8 pb-3 page-enter">
+      <header className="flex-none px-5 pt-8 pb-3 page-enter relative z-10">
         <div className="flex items-center justify-between mb-1">
           <div className="flex-1">
             <p className="text-cream-dim text-sm font-arabic opacity-60 mb-0.5">{greeting}</p>
-            <h1 className="text-gold text-2xl font-arabic font-bold leading-snug">
+            <h1 className="text-gold text-2xl font-arabic font-bold leading-snug shimmer-text">
               حصن المسلم
             </h1>
           </div>
-          <button
-            onClick={() => setSearchOpen(!searchOpen)}
-            className="w-10 h-10 rounded-2xl glass-card-premium border border-emerald-border flex items-center justify-center text-cream-dim hover:text-gold transition-all"
-          >
-            {searchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSearchOpen(!searchOpen)}
+              className="w-10 h-10 rounded-2xl glass-card-premium border border-emerald-border flex items-center justify-center text-cream-dim hover:text-gold transition-all"
+            >
+              {searchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="w-10 h-10 rounded-2xl glass-card-premium border border-emerald-border flex items-center justify-center text-cream-dim hover:text-gold transition-all"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* ── Search Bar ── */}
@@ -85,7 +112,7 @@ const Home: React.FC = () => {
 
       {/* ── المحتوى القابل للتمرير ── */}
       <main
-        className="flex-1 overflow-y-auto px-4 pb-8"
+        className="flex-1 overflow-y-auto px-4 pb-8 relative z-10"
         style={{ touchAction: "pan-y", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
       >
         <div className="max-w-lg mx-auto space-y-4">
@@ -140,11 +167,19 @@ const Home: React.FC = () => {
       </main>
 
       {/* ── الآية الكريمة — ثابتة أسفل الصفحة ── */}
-      <div className="flex-none px-4 py-2 border-t border-emerald-border/30">
+      <div className="flex-none px-4 py-2 border-t border-emerald-border/30 relative z-10">
         <p className="text-cream-dim text-xs font-arabic opacity-25 leading-relaxed text-center">
-          ﴿ وَاذْكُرُوا اللَّهَ كَثِيرًا لَّعَلَّكُمْ تُفْلِحُونَ ﴾
+          ﴿ وَاذْكُرُوا اللَّهَ كَثِيرًا لَّعَلَّكُمْ تُفْلِحُونَ ﴾
         </p>
       </div>
+
+      {/* ── Settings Modal ── */}
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        fontSize={fontSize}
+        onFontSizeChange={setFontSize}
+      />
     </div>
   );
 };

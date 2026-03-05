@@ -16,7 +16,7 @@ import BottomNav from "./components/BottomNav";
 const queryClient = new QueryClient();
 
 // Main pages that show the bottom nav
-const MAIN_PATHS = ["/", "/tasbeeh", "/qibla", "/quran", "/saved"];
+const MAIN_PATHS = ["/", "/tasbeeh", "/qibla", "/saved"];
 
 const AppContent = () => {
   const location = useLocation();

@@ -1331,6 +1331,254 @@
   color: hsl(0 0% 45%);
 }
 
+/* ==============================================
+   PREMIUM VISUAL EFFECTS
+   Floating particles, shimmer, glassmorphism nav,
+   progress ring effects, Islamic geometric overlay
+   ============================================== */
+
+/* ── Floating Ambient Particles ── */
+@keyframes float-particle {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  90% {
+    opacity: 1;
+  }
+
+  50% {
+    transform: translate(var(--drift-x, 30px), var(--drift-y, -60px)) scale(var(--max-scale, 1.5));
+  }
+}
+
+.floating-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: hsl(40 52% 55% / 0.4);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.particle-1 {
+  top: 15%;
+  right: 20%;
+  animation: float-particle 8s ease-in-out infinite;
+  --drift-x: 40px;
+  --drift-y: -80px;
+  --max-scale: 1.8;
+}
+
+.particle-2 {
+  top: 40%;
+  left: 15%;
+  width: 2px;
+  height: 2px;
+  animation: float-particle 12s ease-in-out infinite 2s;
+  --drift-x: -30px;
+  --drift-y: -50px;
+  --max-scale: 2;
+  background: hsl(40 52% 55% / 0.3);
+}
+
+.particle-3 {
+  top: 60%;
+  right: 35%;
+  width: 4px;
+  height: 4px;
+  animation: float-particle 10s ease-in-out infinite 4s;
+  --drift-x: 20px;
+  --drift-y: -90px;
+  --max-scale: 1.3;
+  background: hsl(40 65% 62% / 0.25);
+}
+
+.particle-4 {
+  top: 25%;
+  left: 40%;
+  width: 2px;
+  height: 2px;
+  animation: float-particle 14s ease-in-out infinite 6s;
+  --drift-x: -50px;
+  --drift-y: -40px;
+  --max-scale: 2.5;
+  background: hsl(150 40% 50% / 0.2);
+}
+
+.particle-5 {
+  top: 75%;
+  right: 10%;
+  width: 3px;
+  height: 3px;
+  animation: float-particle 9s ease-in-out infinite 3s;
+  --drift-x: 60px;
+  --drift-y: -70px;
+  --max-scale: 1.6;
+  background: hsl(40 52% 55% / 0.2);
+}
+
+/* ── Islamic Geometric Overlay ── */
+.islamic-geo-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.015;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 25% 25%, hsl(40 52% 55%) 1px, transparent 1px),
+    radial-gradient(circle at 75% 75%, hsl(40 52% 55%) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, hsl(40 52% 55%) 0.5px, transparent 0.5px);
+  background-size: 60px 60px, 60px 60px, 30px 30px;
+}
+
+/* ── Shimmer Text Animation ── */
+@keyframes shimmer-text {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg,
+      hsl(40 52% 55%) 0%,
+      hsl(40 70% 72%) 25%,
+      hsl(40 52% 55%) 50%,
+      hsl(40 70% 72%) 75%,
+      hsl(40 52% 55%) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-text 4s linear infinite;
+}
+
+/* ── Glassmorphism Bottom Nav ── */
+.nav-glass {
+  background: hsl(150 54% 5% / 0.85);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  box-shadow:
+    0 -1px 0 hsl(40 52% 55% / 0.04),
+    0 -8px 32px hsl(0 0% 0% / 0.3);
+}
+
+/* ── Animated Nav Indicator Pill ── */
+.nav-indicator {
+  position: absolute;
+  top: 0;
+  width: 32px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, hsl(40 52% 55%), hsl(40 70% 65%));
+  transition: left 0.35s cubic-bezier(0.22, 1, 0.36, 1), transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  margin-left: -16px;
+  box-shadow: 0 2px 12px hsl(40 52% 55% / 0.4);
+}
+
+.nav-item-active {
+  text-shadow: 0 0 12px hsl(40 52% 55% / 0.3);
+}
+
+/* ── Progress Ring Glow (partially completed) ── */
+@keyframes ring-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px hsl(40 52% 55% / 0.1), 0 0 30px hsl(40 52% 55% / 0.05);
+  }
+
+  50% {
+    box-shadow: 0 0 25px hsl(40 52% 55% / 0.2), 0 0 50px hsl(40 52% 55% / 0.08);
+  }
+}
+
+.progress-ring-glow {
+  animation: ring-pulse 3s ease-in-out infinite;
+}
+
+/* ── Progress Ring Celebration (fully completed) ── */
+@keyframes ring-celebrate {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px hsl(40 52% 55% / 0.2), 0 0 40px hsl(40 52% 55% / 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 35px hsl(40 52% 55% / 0.35), 0 0 60px hsl(40 52% 55% / 0.15);
+  }
+}
+
+.progress-ring-celebrate {
+  animation: ring-celebrate 2s ease-in-out infinite;
+}
+
+/* ── Completed Progress Card ── */
+.progress-card-completed {
+  background: linear-gradient(145deg, hsl(40 30% 12% / 0.4), hsl(150 38% 11% / 0.9));
+  box-shadow:
+    inset 0 1px 0 0 hsl(40 52% 55% / 0.1),
+    0 4px 24px hsl(40 52% 55% / 0.15),
+    0 8px 40px hsl(0 0% 0% / 0.25);
+}
+
+/* ── Streak Flame Animation ── */
+@keyframes flame-flicker {
+
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 3px hsl(25 100% 50% / 0.4));
+  }
+
+  25% {
+    transform: scale(1.05) rotate(-2deg);
+    filter: drop-shadow(0 0 5px hsl(25 100% 50% / 0.6));
+  }
+
+  75% {
+    transform: scale(0.98) rotate(1deg);
+    filter: drop-shadow(0 0 4px hsl(25 100% 50% / 0.5));
+  }
+}
+
+.streak-flame {
+  animation: flame-flicker 1.5s ease-in-out infinite;
+}
+
+.streak-badge {
+  animation: text-fade-in 0.5s ease-out;
+}
+
+/* ── Fade In Up (used for notification settings and other reveals) ── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out;
+}
+
 /* ── Root Layout ── */
 #root {
   width: 100%;

@@ -1,5 +1,5 @@
 // ============================================================
-// شريط التنقل السفلي — 3 تبويبات
+// شريط التنقل السفلي — تصميم Ultra Premium + مؤشر متحرك
 // ============================================================
 
 import React from "react";
@@ -13,7 +13,7 @@ interface NavItem {
     path: string;
 }
 
-// Custom Tasbeeh/prayer beads icon (simpler than importing a library)
+// Custom Tasbeeh/prayer beads icon
 const TasbeehIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg
         className={className}
@@ -56,32 +56,40 @@ const BottomNav: React.FC = () => {
         return "home";
     })();
 
+    const activeIndex = NAV_ITEMS.findIndex((item) => item.id === activeId);
+
     return (
         <nav
-            className="flex-none border-t border-emerald-border/50"
+            className="flex-none border-t border-emerald-border/30 nav-glass"
             style={{
-                background: "hsl(150 54% 5% / 0.98)",
                 paddingBottom: "env(safe-area-inset-bottom, 0px)",
             }}
         >
-            <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
+            <div className="relative flex items-center justify-around h-16 max-w-lg mx-auto">
+                {/* Animated indicator pill */}
+                <div
+                    className="nav-indicator"
+                    style={{
+                        transform: `translateX(${-(activeIndex * 100)}%)`,
+                        left: `${(activeIndex / NAV_ITEMS.length) * 100 + (100 / NAV_ITEMS.length / 2)}%`,
+                    }}
+                />
+
                 {NAV_ITEMS.map((item) => {
                     const isActive = item.id === activeId;
                     return (
                         <button
                             key={item.id}
                             onClick={() => navigate(item.path)}
-                            className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors duration-200 ${isActive ? "text-gold" : "text-cream-dim/50"
+                            className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-300 ${isActive ? "text-gold nav-item-active" : "text-cream-dim/40 hover:text-cream-dim/60"
                                 }`}
                         >
-                            {item.icon}
-                            <span className="text-[10px] font-arabic leading-none">{item.label}</span>
-                            {isActive && (
-                                <div
-                                    className="absolute top-0 w-8 h-0.5 rounded-full bg-gold"
-                                    style={{ marginTop: "-1px" }}
-                                />
-                            )}
+                            <div className={`transition-transform duration-300 ${isActive ? "scale-110" : "scale-100"}`}>
+                                {item.icon}
+                            </div>
+                            <span className={`text-[10px] font-arabic leading-none transition-all duration-300 ${isActive ? "opacity-100" : "opacity-60"}`}>
+                                {item.label}
+                            </span>
                         </button>
                     );
                 })}

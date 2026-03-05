@@ -3,7 +3,8 @@
 // ============================================================
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { BookOpen, X, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { BookOpen, X, Loader2, ArrowRight } from "lucide-react";
 
 /* ── CDN for Mushaf page images ── */
 const IMG_BASE = "https://cdn.jsdelivr.net/gh/GovarJabbar/Quran-PNG@master/";
@@ -98,6 +99,7 @@ const toArabicNum = (n: number): string =>
 
 /* ── Component ── */
 const QuranReader: React.FC = () => {
+    const navigate = useNavigate();
     const TOTAL_PAGES = 604;
     const STORAGE_KEY = "quran-last-page";
 
@@ -221,9 +223,14 @@ const QuranReader: React.FC = () => {
                 {/* Top overlay — appears on tap */}
                 <div className={`quran-overlay-top ${showControls ? "visible" : ""}`}>
                     <span className="quran-overlay-text">{surahName}</span>
-                    <button className="quran-overlay-index-btn" onClick={(e) => { e.stopPropagation(); setShowIndex(true); setShowControls(false); }}>
-                        <BookOpen className="w-4 h-4" />
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <button className="quran-overlay-index-btn" onClick={(e) => { e.stopPropagation(); setShowIndex(true); setShowControls(false); }}>
+                            <BookOpen className="w-4 h-4" />
+                        </button>
+                        <button className="quran-overlay-index-btn" onClick={(e) => { e.stopPropagation(); navigate('/'); }} aria-label="رجوع">
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </div>
                     <span className="quran-overlay-text">الجزء {toArabicNum(juzNumber)}</span>
                 </div>
             </div>
