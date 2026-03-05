@@ -55,7 +55,10 @@ const DailyInspirationCard: React.FC = () => {
 
         // Fetch Ayah
         try {
-            const res = await fetch(`https://api.alquran.cloud/v1/ayah/${ayahNum}/ar`);
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 8000);
+            const res = await fetch(`https://api.alquran.cloud/v1/ayah/${ayahNum}/ar`, { signal: controller.signal });
+            clearTimeout(timer);
             const data = await res.json();
             if (data.code === 200 && data.data) {
                 newContent.ayah = {
@@ -64,24 +67,27 @@ const DailyInspirationCard: React.FC = () => {
                     number: data.data.numberInSurah,
                 };
             }
-        } catch { /* fallback */ }
+        } catch { /* fallback - no internet or timeout */ }
 
         // Fetch Hadith
         try {
             const hadithNum = (hash % 7000) + 1;
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 8000);
             const res = await fetch(
-                `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/ara-bukhari/${hadithNum}.json`
+                `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/ara-bukhari/${hadithNum}.json`,
+                { signal: controller.signal }
             );
+            clearTimeout(timer);
             const data = await res.json();
             if (data?.hadiths?.[0]?.text) {
                 const hadithText = data.hadiths[0].text;
-                // Truncate if too long
                 newContent.hadith = {
                     text: hadithText.length > 300 ? hadithText.slice(0, 300) + "..." : hadithText,
                     source: "صحيح البخاري",
                 };
             }
-        } catch { /* fallback */ }
+        } catch { /* fallback - no internet or timeout */ }
 
         // Cache and set
         try { localStorage.setItem(CACHE_KEY, JSON.stringify(newContent)); } catch { /* ignore */ }
@@ -115,7 +121,14 @@ const DailyInspirationCard: React.FC = () => {
         );
     }
 
-    if (!content?.ayah && !content?.hadith) return null;
+    if (!content?.ayah && !content?.hadith) {
+        // Offline fallback
+        return (
+            <div className="card-stagger glass-card-premium rounded-3xl border border-emerald-border p-5 text-center">
+                <p className="text-cream-dim/40 text-xs font-arabic">تعذر الاتصال — ستظهر آية اليوم عند الاتصال بالإنترنت</p>
+            </div>
+        );
+    }
 
     return (
         <div className="card-stagger rounded-3xl border border-gold/15 overflow-hidden daily-inspiration-card">
@@ -148,7 +161,7 @@ const DailyInspirationCard: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="p-5 relative" style={{ background: "hsl(150 38% 8% / 0.9)" }}>
+            <div className="p-5 relative" style={{ background: "var(--gradient-card)" }}>
                 {activeTab === "ayah" && content.ayah ? (
                     <div className="text-center">
                         <p className="text-cream font-arabic text-lg leading-[2.2] mb-3" style={{ fontFamily: "'Amiri', 'Noto Naskh Arabic', serif" }}>

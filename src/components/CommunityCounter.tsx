@@ -31,26 +31,25 @@ const CommunityCounter: React.FC = () => {
         if (total === 0) { setAnimatedTotal(0); return; }
         const duration = 1200;
         const startTime = Date.now();
-        const startVal = 0;
+        let raf: number;
 
         const tick = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            // Ease out cubic
             const eased = 1 - Math.pow(1 - progress, 3);
-            setAnimatedTotal(Math.round(startVal + (total - startVal) * eased));
-            if (progress < 1) requestAnimationFrame(tick);
+            setAnimatedTotal(Math.round(total * eased));
+            if (progress < 1) raf = requestAnimationFrame(tick);
         };
 
-        requestAnimationFrame(tick);
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
     }, [total]);
 
     // Listen for storage changes (from other hooks incrementing)
     useEffect(() => {
         const handler = () => setStats(loadLifetime());
         window.addEventListener("storage", handler);
-        // Also poll periodically since same-tab storage events don't fire
-        const interval = setInterval(() => setStats(loadLifetime()), 5000);
+        const interval = setInterval(() => setStats(loadLifetime()), 30000);
         return () => { window.removeEventListener("storage", handler); clearInterval(interval); };
     }, []);
 

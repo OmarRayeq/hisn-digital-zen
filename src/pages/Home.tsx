@@ -47,7 +47,7 @@ const Home: React.FC = () => {
   return (
     <div
       className="flex flex-col h-full overflow-hidden"
-      style={{ background: "var(--gradient-hero)", touchAction: "none" }}
+      style={{ background: "var(--gradient-hero)" }}
       dir="rtl"
     >
       {/* ── Ambient floating particles ── */}

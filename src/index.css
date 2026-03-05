@@ -1628,9 +1628,10 @@
   height: 3px;
   border-radius: 0 0 4px 4px;
   background: linear-gradient(90deg, hsl(40 52% 55%), hsl(40 70% 65%));
-  transition: left 0.35s cubic-bezier(0.22, 1, 0.36, 1), transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-  margin-left: -16px;
+  transition: left 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateX(-50%);
   box-shadow: 0 2px 12px hsl(40 52% 55% / 0.4);
+  pointer-events: none;
 }
 
 .nav-item-active {
