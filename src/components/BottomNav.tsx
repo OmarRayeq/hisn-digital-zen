@@ -70,8 +70,7 @@ const BottomNav: React.FC = () => {
                 <div
                     className="nav-indicator"
                     style={{
-                        transform: `translateX(${-(activeIndex * 100)}%)`,
-                        left: `${(activeIndex / NAV_ITEMS.length) * 100 + (100 / NAV_ITEMS.length / 2)}%`,
+                        left: `${activeIndex * 20 + 10}%`,
                     }}
                 />
 

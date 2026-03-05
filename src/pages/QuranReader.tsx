@@ -115,6 +115,7 @@ const QuranReader: React.FC = () => {
 
     const touchStartRef = useRef<{ x: number; y: number; t: number }>({ x: 0, y: 0, t: 0 });
     const overlayTimerRef = useRef<ReturnType<typeof setTimeout>>();
+    const usedTouchRef = useRef(false); // Prevent click from firing after touch
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, currentPage.toString());
@@ -156,6 +157,7 @@ const QuranReader: React.FC = () => {
 
     // Touch: swipe + tap zones
     const handleTouchStart = (e: React.TouchEvent) => {
+        usedTouchRef.current = true;
         touchStartRef.current = {
             x: e.touches[0].clientX,
             y: e.touches[0].clientY,
@@ -182,20 +184,21 @@ const QuranReader: React.FC = () => {
             const zone = tapX / screenWidth;
 
             if (zone < 0.3) {
-                // Left 30% → next page (RTL: next is left)
                 goNext();
             } else if (zone > 0.7) {
-                // Right 30% → prev page (RTL: prev is right)
                 goPrev();
             } else {
-                // Center 40% → toggle overlay
                 setShowOverlay((v) => !v);
             }
         }
     };
 
-    // Mouse click for desktop — same zone logic
+    // Mouse click for desktop only — skip if touch was used
     const handleClick = (e: React.MouseEvent) => {
+        if (usedTouchRef.current) {
+            usedTouchRef.current = false;
+            return; // Skip — touch already handled it
+        }
         const screenWidth = window.innerWidth;
         const zone = e.clientX / screenWidth;
 
@@ -273,22 +276,24 @@ const QuranReader: React.FC = () => {
                 {/* Bottom overlay — page slider */}
                 <div className={`mushaf-overlay-bottom ${showOverlay ? "mushaf-overlay-visible" : ""}`}>
                     <div className="mushaf-slider-wrap">
-                        <span className="mushaf-slider-label">١</span>
+                        <span className="mushaf-slider-label">٦٠٤</span>
                         <input
                             type="range"
                             min={1}
                             max={TOTAL_PAGES}
-                            value={currentPage}
+                            value={TOTAL_PAGES + 1 - currentPage}
                             onChange={(e) => {
                                 e.stopPropagation();
-                                setCurrentPage(parseInt(e.target.value));
+                                setCurrentPage(TOTAL_PAGES + 1 - parseInt(e.target.value));
                                 setLoading(true);
                             }}
                             onClick={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
+                            onTouchEnd={(e) => e.stopPropagation()}
                             className="mushaf-slider"
                             dir="ltr"
                         />
-                        <span className="mushaf-slider-label">٦٠٤</span>
+                        <span className="mushaf-slider-label">١</span>
                     </div>
                 </div>
             </div>
