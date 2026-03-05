@@ -150,6 +150,8 @@ const QuranReader: React.FC = () => {
     const [showIndex, setShowIndex] = useState(false);
     const [showOverlay, setShowOverlay] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [sliderDragging, setSliderDragging] = useState(false);
+    const [sliderPage, setSliderPage] = useState(currentPage);
 
     // Download state
     const [downloading, setDownloading] = useState(false);
@@ -336,7 +338,7 @@ const QuranReader: React.FC = () => {
 
                 {/* Floating page number */}
                 <div className="mushaf-page-num">
-                    <span>{toArabicNum(currentPage)}</span>
+                    <span>{toArabicNum(sliderDragging ? sliderPage : currentPage)}</span>
                 </div>
 
                 {/* Top overlay */}
@@ -380,14 +382,24 @@ const QuranReader: React.FC = () => {
                             type="range"
                             min={1}
                             max={TOTAL_PAGES}
-                            value={TOTAL_PAGES + 1 - currentPage}
+                            value={TOTAL_PAGES + 1 - (sliderDragging ? sliderPage : currentPage)}
                             onChange={(e) => {
                                 e.stopPropagation();
-                                setCurrentPage(TOTAL_PAGES + 1 - parseInt(e.target.value));
+                                const page = TOTAL_PAGES + 1 - parseInt(e.target.value);
+                                setSliderPage(page);
+                                if (!sliderDragging) setSliderDragging(true);
+                            }}
+                            onMouseUp={() => {
+                                setCurrentPage(sliderPage);
+                                setSliderDragging(false);
+                            }}
+                            onTouchEnd={(e) => {
+                                e.stopPropagation();
+                                setCurrentPage(sliderPage);
+                                setSliderDragging(false);
                             }}
                             onClick={(e) => e.stopPropagation()}
                             onTouchStart={(e) => e.stopPropagation()}
-                            onTouchEnd={(e) => e.stopPropagation()}
                             className="mushaf-slider"
                             dir="ltr"
                         />

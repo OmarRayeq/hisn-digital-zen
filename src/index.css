@@ -1377,26 +1377,32 @@
   border-radius: 2px;
   outline: none;
   cursor: pointer;
+  touch-action: none;
 }
 
 .mushaf-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: hsl(40 52% 55%);
   border: 2px solid hsl(40 60% 65%);
-  box-shadow: 0 0 8px hsl(40 52% 55% / 0.4);
+  box-shadow: 0 0 10px hsl(40 52% 55% / 0.5);
   cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.mushaf-slider:active::-webkit-slider-thumb {
+  transform: scale(1.15);
 }
 
 .mushaf-slider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: hsl(40 52% 55%);
   border: 2px solid hsl(40 60% 65%);
-  box-shadow: 0 0 8px hsl(40 52% 55% / 0.4);
+  box-shadow: 0 0 10px hsl(40 52% 55% / 0.5);
   cursor: pointer;
 }
 
