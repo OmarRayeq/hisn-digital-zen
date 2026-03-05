@@ -263,8 +263,9 @@ const QuranReader: React.FC = () => {
         setShowOverlay((v) => !v);
     };
 
-    const surahName = getSurahForPage(currentPage);
-    const juzNumber = getJuzForPage(currentPage);
+    const displayPage = sliderDragging ? sliderPage : currentPage;
+    const surahName = getSurahForPage(displayPage);
+    const juzNumber = getJuzForPage(displayPage);
 
     const filteredSurahs = searchQuery
         ? SURAHS.filter((s, i) =>
@@ -338,7 +339,7 @@ const QuranReader: React.FC = () => {
 
                 {/* Floating page number */}
                 <div className="mushaf-page-num">
-                    <span>{toArabicNum(sliderDragging ? sliderPage : currentPage)}</span>
+                    <span>{toArabicNum(displayPage)}</span>
                 </div>
 
                 {/* Top overlay */}
@@ -358,7 +359,7 @@ const QuranReader: React.FC = () => {
                         </button>
                         <div className="mushaf-overlay-info">
                             <span className="mushaf-overlay-surah">سورة {surahName}</span>
-                            <span className="mushaf-overlay-juz">الجزء {toArabicNum(juzNumber)} • صفحة {toArabicNum(currentPage)}</span>
+                            <span className="mushaf-overlay-juz">الجزء {toArabicNum(juzNumber)} • صفحة {toArabicNum(displayPage)}</span>
                         </div>
                         <button
                             className="mushaf-overlay-btn"
