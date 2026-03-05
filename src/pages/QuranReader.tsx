@@ -231,8 +231,13 @@ const QuranReader: React.FC = () => {
                     <span>{toArabicNum(currentPage)}</span>
                 </div>
 
-                {/* Top overlay — appears on center tap */}
-                <div className={`mushaf-overlay-top ${showOverlay ? "mushaf-overlay-visible" : ""}`}>
+                {/* Top overlay — appears on tap */}
+                <div
+                    className={`mushaf-overlay-top ${showOverlay ? "mushaf-overlay-visible" : ""}`}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <div className="mushaf-overlay-bar">
                         <button
                             className="mushaf-overlay-btn"
@@ -255,7 +260,12 @@ const QuranReader: React.FC = () => {
                 </div>
 
                 {/* Bottom overlay — page slider */}
-                <div className={`mushaf-overlay-bottom ${showOverlay ? "mushaf-overlay-visible" : ""}`}>
+                <div
+                    className={`mushaf-overlay-bottom ${showOverlay ? "mushaf-overlay-visible" : ""}`}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <div className="mushaf-slider-wrap">
                         <span className="mushaf-slider-label">٦٠٤</span>
                         <input
