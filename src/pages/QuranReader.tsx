@@ -150,9 +150,6 @@ const QuranReader: React.FC = () => {
     const [showIndex, setShowIndex] = useState(false);
     const [showOverlay, setShowOverlay] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [displaySrc, setDisplaySrc] = useState(() => pageUrl(
-        parseInt(localStorage.getItem(STORAGE_KEY) || "1", 10)
-    ));
 
     // Download state
     const [downloading, setDownloading] = useState(false);
@@ -168,11 +165,15 @@ const QuranReader: React.FC = () => {
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, currentPage.toString());
-        // Preload next page image, then swap in
-        const img = new Image();
-        img.src = pageUrl(currentPage);
-        img.onload = () => setDisplaySrc(img.src);
-        // If cached, onload fires synchronously or near-instantly
+        // Pre-decode pages ±2 ahead for buttery smooth swiping
+        [-2, -1, 1, 2].forEach((offset) => {
+            const p = currentPage + offset;
+            if (p >= 1 && p <= TOTAL_PAGES) {
+                const img = new Image();
+                img.src = pageUrl(p);
+                if (img.decode) img.decode().catch(() => { });
+            }
+        });
     }, [currentPage]);
 
     // Start background download on mount if not already done
@@ -298,19 +299,40 @@ const QuranReader: React.FC = () => {
                 </div>
             )}
 
-            {/* Full-screen Mushaf image */}
+            {/* Full-screen Mushaf — triple buffer: prev + current + next */}
             <div
                 className="mushaf-viewport"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
                 onClick={handleClick}
             >
+                {/* Previous page (hidden, pre-decoded) */}
+                {currentPage > 1 && (
+                    <img
+                        src={pageUrl(currentPage - 1)}
+                        className="mushaf-img mushaf-img-hidden"
+                        draggable={false}
+                        aria-hidden="true"
+                    />
+                )}
+
+                {/* Current page (visible) */}
                 <img
-                    src={displaySrc}
+                    src={pageUrl(currentPage)}
                     alt={`صفحة ${toArabicNum(currentPage)}`}
                     className="mushaf-img"
                     draggable={false}
                 />
+
+                {/* Next page (hidden, pre-decoded) */}
+                {currentPage < TOTAL_PAGES && (
+                    <img
+                        src={pageUrl(currentPage + 1)}
+                        className="mushaf-img mushaf-img-hidden"
+                        draggable={false}
+                        aria-hidden="true"
+                    />
+                )}
 
                 {/* Floating page number */}
                 <div className="mushaf-page-num">
