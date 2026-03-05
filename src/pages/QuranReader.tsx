@@ -150,6 +150,9 @@ const QuranReader: React.FC = () => {
     const [showIndex, setShowIndex] = useState(false);
     const [showOverlay, setShowOverlay] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [displaySrc, setDisplaySrc] = useState(() => pageUrl(
+        parseInt(localStorage.getItem(STORAGE_KEY) || "1", 10)
+    ));
 
     // Download state
     const [downloading, setDownloading] = useState(false);
@@ -165,6 +168,11 @@ const QuranReader: React.FC = () => {
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, currentPage.toString());
+        // Preload next page image, then swap in
+        const img = new Image();
+        img.src = pageUrl(currentPage);
+        img.onload = () => setDisplaySrc(img.src);
+        // If cached, onload fires synchronously or near-instantly
     }, [currentPage]);
 
     // Start background download on mount if not already done
@@ -298,8 +306,7 @@ const QuranReader: React.FC = () => {
                 onClick={handleClick}
             >
                 <img
-                    key={currentPage}
-                    src={pageUrl(currentPage)}
+                    src={displaySrc}
                     alt={`صفحة ${toArabicNum(currentPage)}`}
                     className="mushaf-img"
                     draggable={false}
