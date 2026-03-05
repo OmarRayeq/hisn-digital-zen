@@ -177,19 +177,9 @@ const QuranReader: React.FC = () => {
             return;
         }
 
-        // Tap detection — use zones
+        // Tap detection — center tap toggles overlay only
         if (dt < 300 && Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-            const screenWidth = window.innerWidth;
-            const tapX = e.changedTouches[0].clientX;
-            const zone = tapX / screenWidth;
-
-            if (zone < 0.3) {
-                goNext();
-            } else if (zone > 0.7) {
-                goPrev();
-            } else {
-                setShowOverlay((v) => !v);
-            }
+            setShowOverlay((v) => !v);
         }
     };
 
@@ -197,18 +187,9 @@ const QuranReader: React.FC = () => {
     const handleClick = (e: React.MouseEvent) => {
         if (usedTouchRef.current) {
             usedTouchRef.current = false;
-            return; // Skip — touch already handled it
+            return;
         }
-        const screenWidth = window.innerWidth;
-        const zone = e.clientX / screenWidth;
-
-        if (zone < 0.3) {
-            goNext();
-        } else if (zone > 0.7) {
-            goPrev();
-        } else {
-            setShowOverlay((v) => !v);
-        }
+        setShowOverlay((v) => !v);
     };
 
     const surahName = getSurahForPage(currentPage);
