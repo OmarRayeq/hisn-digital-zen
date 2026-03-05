@@ -1160,6 +1160,44 @@
    المصحف المدني 1441 — Edge-to-edge
    ============================================== */
 
+/* Download overlay */
+.mushaf-download-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0 0 0 / 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: text-fade-in 0.3s ease-out;
+}
+
+.mushaf-download-card {
+  text-align: center;
+  padding: 32px 28px;
+  max-width: 320px;
+  width: 85%;
+  background: #111;
+  border-radius: 24px;
+  border: 1px solid rgba(255 255 255 / 0.08);
+}
+
+.mushaf-download-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255 255 255 / 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.mushaf-download-fill {
+  height: 100%;
+  background: linear-gradient(90deg, hsl(40 52% 45%), hsl(40 70% 60%));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 12px hsl(40 52% 55% / 0.4);
+}
+
 .mushaf-reader {
   position: fixed;
   inset: 0;

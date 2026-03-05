@@ -1,17 +1,58 @@
 // ============================================================
 // القرآن الكريم — Full-screen المصحف المدني 1441
-// Pure black, edge-to-edge, tap zones, swipe navigation
+// Pre-downloads all 604 pages — zero loading after first use
 // ============================================================
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, X, Loader2, ArrowRight } from "lucide-react";
+import { BookOpen, X, Loader2, ArrowRight, Download } from "lucide-react";
 
 /* ── CDN for المصحف المدني page images ── */
 const IMG_BASE = "https://cdn.jsdelivr.net/gh/GovarJabbar/Quran-PNG@master/";
+const CACHE_NAME = "quran-pages-v1";
+const TOTAL_PAGES = 604;
+const STORAGE_KEY = "quran-last-page";
+const DOWNLOAD_DONE_KEY = "quran-download-complete";
 
 function pageUrl(page: number): string {
     return `${IMG_BASE}${page.toString().padStart(3, "0")}.png`;
+}
+
+/* ── Background download all pages ── */
+async function countCachedPages(): Promise<number> {
+    try {
+        const cache = await caches.open(CACHE_NAME);
+        const keys = await cache.keys();
+        return keys.length;
+    } catch { return 0; }
+}
+
+async function downloadAllPages(
+    onProgress: (done: number, total: number) => void,
+    abortSignal: AbortSignal
+): Promise<void> {
+    const cache = await caches.open(CACHE_NAME);
+    const BATCH_SIZE = 8; // concurrent downloads
+
+    for (let i = 0; i < TOTAL_PAGES; i += BATCH_SIZE) {
+        if (abortSignal.aborted) return;
+
+        const batch = [];
+        for (let j = i; j < Math.min(i + BATCH_SIZE, TOTAL_PAGES); j++) {
+            const url = pageUrl(j + 1);
+            batch.push(
+                cache.match(url).then(async (existing) => {
+                    if (existing) return; // Already cached
+                    try {
+                        const res = await fetch(url, { signal: abortSignal });
+                        if (res.ok) await cache.put(url, res);
+                    } catch { /* skip failed — will retry next time */ }
+                })
+            );
+        }
+        await Promise.all(batch);
+        onProgress(Math.min(i + BATCH_SIZE, TOTAL_PAGES), TOTAL_PAGES);
+    }
 }
 
 /* ── Surah metadata ── */
@@ -101,35 +142,57 @@ const toArabicNum = (n: number): string =>
 /* ── Component ── */
 const QuranReader: React.FC = () => {
     const navigate = useNavigate();
-    const TOTAL_PAGES = 604;
-    const STORAGE_KEY = "quran-last-page";
 
     const [currentPage, setCurrentPage] = useState<number>(() => {
         const saved = localStorage.getItem(STORAGE_KEY);
         return saved ? parseInt(saved, 10) : 1;
     });
-    const [loading, setLoading] = useState(true);
     const [showIndex, setShowIndex] = useState(false);
     const [showOverlay, setShowOverlay] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
+    // Download state
+    const [downloading, setDownloading] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState(0);
+    const [allCached, setAllCached] = useState(() => {
+        return localStorage.getItem(DOWNLOAD_DONE_KEY) === "true";
+    });
+
     const touchStartRef = useRef<{ x: number; y: number; t: number }>({ x: 0, y: 0, t: 0 });
     const overlayTimerRef = useRef<ReturnType<typeof setTimeout>>();
-    const usedTouchRef = useRef(false); // Prevent click from firing after touch
+    const usedTouchRef = useRef(false);
+    const abortRef = useRef<AbortController>();
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, currentPage.toString());
     }, [currentPage]);
 
-    // Preload adjacent pages
+    // Start background download on mount if not already done
     useEffect(() => {
-        [currentPage - 1, currentPage + 1].forEach((p) => {
-            if (p >= 1 && p <= TOTAL_PAGES) {
-                const img = new Image();
-                img.src = pageUrl(p);
+        if (allCached) return;
+
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        // Start download
+        setDownloading(true);
+        downloadAllPages(
+            (done, total) => {
+                setDownloadProgress(Math.round((done / total) * 100));
+            },
+            controller.signal
+        ).then(() => {
+            if (!controller.signal.aborted) {
+                setAllCached(true);
+                setDownloading(false);
+                localStorage.setItem(DOWNLOAD_DONE_KEY, "true");
             }
+        }).catch(() => {
+            setDownloading(false);
         });
-    }, [currentPage]);
+
+        return () => controller.abort();
+    }, [allCached]);
 
     // Auto-hide overlay after 4 seconds
     useEffect(() => {
@@ -141,21 +204,18 @@ const QuranReader: React.FC = () => {
 
     const goNext = useCallback(() => {
         setCurrentPage((p) => Math.min(p + 1, TOTAL_PAGES));
-        setLoading(true);
     }, []);
 
     const goPrev = useCallback(() => {
         setCurrentPage((p) => Math.max(p - 1, 1));
-        setLoading(true);
     }, []);
 
     const goToPage = useCallback((page: number) => {
         setCurrentPage(Math.max(1, Math.min(page, TOTAL_PAGES)));
         setShowIndex(false);
-        setLoading(true);
     }, []);
 
-    // Touch: swipe + tap zones
+    // Touch: swipe only
     const handleTouchStart = (e: React.TouchEvent) => {
         usedTouchRef.current = true;
         touchStartRef.current = {
@@ -172,18 +232,18 @@ const QuranReader: React.FC = () => {
 
         // Swipe detection
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-            if (dx > 0) goNext(); // swipe right = next page (RTL)
-            else goPrev();        // swipe left = prev page (RTL)
+            if (dx > 0) goNext();
+            else goPrev();
             return;
         }
 
-        // Tap detection — center tap toggles overlay only
+        // Tap → toggle overlay
         if (dt < 300 && Math.abs(dx) < 10 && Math.abs(dy) < 10) {
             setShowOverlay((v) => !v);
         }
     };
 
-    // Mouse click for desktop only — skip if touch was used
+    // Mouse click for desktop
     const handleClick = (e: React.MouseEvent) => {
         if (usedTouchRef.current) {
             usedTouchRef.current = false;
@@ -203,35 +263,54 @@ const QuranReader: React.FC = () => {
 
     return (
         <div className="mushaf-reader" dir="rtl">
-            {/* Full-screen Mushaf image — pure black */}
+            {/* Download progress overlay */}
+            {downloading && (
+                <div className="mushaf-download-overlay">
+                    <div className="mushaf-download-card">
+                        <Download className="w-8 h-8 text-gold mb-3" />
+                        <p className="text-cream font-arabic text-base font-bold mb-1">
+                            جارٍ تحميل المصحف
+                        </p>
+                        <p className="text-cream-dim/50 font-arabic text-xs mb-4">
+                            يتم تحميل الصفحات للقراءة بدون إنترنت
+                        </p>
+                        <div className="mushaf-download-bar">
+                            <div
+                                className="mushaf-download-fill"
+                                style={{ width: `${downloadProgress}%` }}
+                            />
+                        </div>
+                        <p className="text-gold/80 font-arabic text-xs mt-2">
+                            {toArabicNum(downloadProgress)}٪
+                        </p>
+                        <p className="text-cream-dim/30 font-arabic text-[10px] mt-3">
+                            يمكنك التصفح أثناء التحميل
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Full-screen Mushaf image */}
             <div
                 className="mushaf-viewport"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
                 onClick={handleClick}
             >
-                {loading && (
-                    <div className="mushaf-loading">
-                        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(40 52% 55%)" }} />
-                    </div>
-                )}
                 <img
                     key={currentPage}
                     src={pageUrl(currentPage)}
                     alt={`صفحة ${toArabicNum(currentPage)}`}
                     className="mushaf-img"
-                    style={{ opacity: loading ? 0 : 1 }}
-                    onLoad={() => setLoading(false)}
-                    onError={() => setLoading(false)}
                     draggable={false}
                 />
 
-                {/* Floating page number — always visible */}
+                {/* Floating page number */}
                 <div className="mushaf-page-num">
                     <span>{toArabicNum(currentPage)}</span>
                 </div>
 
-                {/* Top overlay — appears on tap */}
+                {/* Top overlay */}
                 <div
                     className={`mushaf-overlay-top ${showOverlay ? "mushaf-overlay-visible" : ""}`}
                     onTouchStart={(e) => e.stopPropagation()}
@@ -276,7 +355,6 @@ const QuranReader: React.FC = () => {
                             onChange={(e) => {
                                 e.stopPropagation();
                                 setCurrentPage(TOTAL_PAGES + 1 - parseInt(e.target.value));
-                                setLoading(true);
                             }}
                             onClick={(e) => e.stopPropagation()}
                             onTouchStart={(e) => e.stopPropagation()}
