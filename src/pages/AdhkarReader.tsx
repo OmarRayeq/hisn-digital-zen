@@ -3,15 +3,17 @@
 // تخطيط ثابت + تمرير داخلي + حالة جلسة + haptic feedback
 // ============================================================
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronRight, ChevronLeft, ArrowRight, Loader2, Star } from "lucide-react";
+import { ChevronRight, ChevronLeft, ArrowRight, Loader2, Star, ListOrdered } from "lucide-react";
 import { AdhkarCategoryId, ADHKAR_CATEGORIES } from "@/lib/adhkar-api";
 import { useAdhkarList, useFontSize, useReadTracker } from "@/hooks/useAdhkar";
 import { useSwipe } from "@/hooks/useSwipe";
 import { useFavorites, useStreak, useHistory, useDailyProgress } from "@/hooks/useFavorites";
+import { useCustomAdhkar } from "@/hooks/useCustomAdhkar";
 import CounterButton from "@/components/CounterButton";
 import SettingsModal from "@/components/SettingsModal";
+import ManageAdhkarModal from "@/components/ManageAdhkarModal";
 import ProgressDots from "@/components/ProgressDots";
 
 // ── مفتاح حفظ حالة العداد لكل ذكر في الجلسة ──
@@ -61,7 +63,25 @@ const AdhkarReader: React.FC = () => {
   const [remaining, setRemaining] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isManageOpen, setIsManageOpen] = useState(false);
   const [allCompleted, setAllCompleted] = useState(false);
+
+  // ── تخصيصات الأذكار (ترتيب + مضافة) ──
+  const {
+    customization,
+    moveItem,
+    addDhikr,
+    removeDhikr,
+    resetAll,
+    applyCustomizations,
+    hasCustomizations,
+  } = useCustomAdhkar(catId);
+
+  // تطبيق التخصيصات على الأذكار الأصلية
+  const displayAdhkar = useMemo(
+    () => applyCustomizations(adhkar),
+    [adhkar, applyCustomizations]
+  );
 
   // Record to history on mount
   useEffect(() => {
@@ -70,7 +90,7 @@ const AdhkarReader: React.FC = () => {
     }
   }, [catId]);
 
-  const currentDhikr = adhkar[currentIndex];
+  const currentDhikr = displayAdhkar[currentIndex];
 
   // ── تهيئة العداد — مع استرجاع حالة الجلسة ──
   useEffect(() => {
@@ -102,7 +122,7 @@ const AdhkarReader: React.FC = () => {
   }, []);
 
   const advanceToNext = useCallback(() => {
-    if (currentIndex < adhkar.length - 1) {
+    if (currentIndex < displayAdhkar.length - 1) {
       goToIndex(currentIndex + 1);
     } else {
       setAllCompleted(true);
@@ -114,12 +134,12 @@ const AdhkarReader: React.FC = () => {
       const eDone = catId === "evening" ? true : eveningDone;
       if (mDone && eDone) recordCompletion();
     }
-  }, [currentIndex, adhkar.length, goToIndex, catId, markMorningDone, markEveningDone, morningDone, eveningDone, recordCompletion]);
+  }, [currentIndex, displayAdhkar.length, goToIndex, catId, markMorningDone, markEveningDone, morningDone, eveningDone, recordCompletion]);
 
   // RTL: يسار = التالي، يمين = السابق
   const goNext = useCallback(() => {
-    if (currentIndex < adhkar.length - 1) goToIndex(currentIndex + 1);
-  }, [currentIndex, adhkar.length, goToIndex]);
+    if (currentIndex < displayAdhkar.length - 1) goToIndex(currentIndex + 1);
+  }, [currentIndex, displayAdhkar.length, goToIndex]);
 
   const goPrev = useCallback(() => {
     if (currentIndex > 0) goToIndex(currentIndex - 1);
@@ -182,7 +202,7 @@ const AdhkarReader: React.FC = () => {
     );
   }
 
-  if (error || adhkar.length === 0) {
+  if (error || (adhkar.length === 0 && customization.addedAdhkar.length === 0)) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center gap-3" style={{ background: "var(--gradient-hero)" }} dir="rtl">
         <p className="text-destructive text-sm font-arabic">{error || "لا توجد أذكار"}</p>
@@ -202,19 +222,31 @@ const AdhkarReader: React.FC = () => {
       {/* ═══ الترويسة ═══ */}
       <header className="flex-none px-4 pt-6 pb-3">
         <div className="flex items-center justify-between mb-3">
-          <button
-            onClick={() => navigate("/")}
-            className="w-9 h-9 rounded-xl glass-card border border-emerald-border flex items-center justify-center text-cream-dim hover:text-gold transition-all"
-          >
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => navigate("/")}
+              className="w-9 h-9 rounded-xl glass-card border border-emerald-border flex items-center justify-center text-cream-dim hover:text-gold transition-all"
+            >
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setIsManageOpen(true)}
+              className={`w-9 h-9 rounded-xl glass-card border flex items-center justify-center transition-all ${hasCustomizations
+                  ? "border-gold/50 text-gold"
+                  : "border-emerald-border text-cream-dim hover:text-gold"
+                }`}
+              title="إدارة الأذكار"
+            >
+              <ListOrdered className="w-4 h-4" />
+            </button>
+          </div>
 
           <div className="flex-1 mx-3 text-center">
             <h1 className="text-gold text-base font-arabic font-bold leading-tight truncate">
               {categoryInfo?.name || "أذكار"}
             </h1>
             <p className="text-cream-dim text-xs font-arabic mt-0.5">
-              {currentIndex + 1} / {adhkar.length}
+              {currentIndex + 1} / {displayAdhkar.length}
               {readCount > 0 && (
                 <span className="text-gold mr-2">• {readCount} مكتمل</span>
               )}
@@ -225,7 +257,7 @@ const AdhkarReader: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={goNext}
-              disabled={currentIndex >= adhkar.length - 1}
+              disabled={currentIndex >= displayAdhkar.length - 1}
               className="w-9 h-9 rounded-xl glass-card border border-emerald-border flex items-center justify-center text-cream-dim hover:text-gold disabled:opacity-30 transition-all"
               title="الذكر التالي"
             >
@@ -242,7 +274,7 @@ const AdhkarReader: React.FC = () => {
           </div>
         </div>
 
-        <ProgressDots total={adhkar.length} current={currentIndex} onDotClick={goToIndex} />
+        <ProgressDots total={displayAdhkar.length} current={currentIndex} onDotClick={goToIndex} />
       </header>
 
       {/* ═══ المحتوى — تمرير داخلي فقط ═══ */}
@@ -390,6 +422,18 @@ const AdhkarReader: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         fontSize={fontSize}
         onFontSizeChange={setFontSize}
+      />
+
+      <ManageAdhkarModal
+        isOpen={isManageOpen}
+        onClose={() => setIsManageOpen(false)}
+        adhkar={displayAdhkar}
+        customAdhkar={customization.addedAdhkar}
+        onMoveItem={moveItem}
+        onAddDhikr={addDhikr}
+        onRemoveDhikr={removeDhikr}
+        onResetAll={resetAll}
+        hasCustomizations={hasCustomizations}
       />
     </div>
   );
